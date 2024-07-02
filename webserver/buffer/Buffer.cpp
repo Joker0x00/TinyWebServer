@@ -129,6 +129,10 @@ char *Buffer::getEndPtr() {
     return &buffer_[buffer_.size() - 1];
 }
 
+void Buffer::append(const std::string &str) {
+    append(str.c_str(), str.length());
+}
+
 
 
 

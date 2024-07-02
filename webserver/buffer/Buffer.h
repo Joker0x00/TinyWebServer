@@ -43,6 +43,8 @@ public:
     // 将
     void append(const char* str, size_t len);
 
+    void append(const std::string& str);
+
     void addWriteIdx(size_t len);
 
     void addReadIdx(size_t len);

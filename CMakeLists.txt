@@ -5,4 +5,12 @@ set(CMAKE_CXX_STANDARD 17)
 
 add_executable(TinyWebServer main.cpp
         webserver/buffer/Buffer.cpp
-        webserver/buffer/Buffer.h)
+        webserver/buffer/Buffer.h
+        webserver/log/Log.cpp
+        webserver/log/Log.h
+        webserver/log/LogQueue.h
+        webserver/utils/Utils.h
+        webserver/log/LogLevel.h
+        "test/ testLog.cpp")
+set(CMAKE_CXX_FLAGS -pthread)
+message(STATUS "CMAKE_CXX_FLAGS = ${CMAKE_CXX_FLAGS}")

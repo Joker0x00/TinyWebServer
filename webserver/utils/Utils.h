@@ -8,6 +8,7 @@
 #include <iostream>
 #include <ctime>
 #include <sys/stat.h>
+#include <algorithm>
 
 
 namespace  util {
@@ -56,6 +57,17 @@ namespace  util {
             // 释放空间
             delete[] str_out;
             str_out = nullptr;
+        }
+        static const char* findCRLF(const char* buffer, const char* buffer_end) {
+            const char* target = "\r\n";
+//            std::cout << std::string(buffer, buffer_end) << std::endl;
+            // 使用 std::search 查找子字符串
+            const char* result = std::search(buffer, buffer_end, target, target + 2);
+            if (result != buffer_end) {
+                return result; // 找到并返回指向 '\r\n' 的指针
+            }
+
+            return nullptr; // 未找到
         }
     };
     class File {

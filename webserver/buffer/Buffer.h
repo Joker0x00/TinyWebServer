@@ -40,7 +40,7 @@ public:
     ssize_t readFd(int fd, int* Errno);
 
     ssize_t writeFd(int fd, int* Errno);
-    // 将
+
     void append(const char* str, size_t len);
 
     void append(const std::string& str);

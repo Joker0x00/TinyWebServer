@@ -18,6 +18,12 @@ add_executable(TinyWebServer main.cpp
         webserver/http/ParseHttpRequest.h
         webserver/http/HttpMethod.h
         webserver/http/ParsedUrl.h
+        webserver/http/HttpResponse.h
+        webserver/http/HttpProcess.h
+        webserver/http/HttpParams.h
+        webserver/http/HttpWork.cpp
+        webserver/http/HttpWork.h
+        webserver/http/HttpResponse.cpp
 )
 set(CMAKE_CXX_FLAGS -pthread)
 message(STATUS "CMAKE_CXX_FLAGS = ${CMAKE_CXX_FLAGS}")

@@ -135,3 +135,12 @@ std::string &ParseHttpRequest::getBody() {
     return data_;
 }
 
+bool ParseHttpRequest::keepAlive() {
+    if (headers_.count("Connection")) {
+        if (headers_["Connection"] ==  "keep-alive") {
+            return true;
+        }
+    }
+    return false;
+}
+

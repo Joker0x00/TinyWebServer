@@ -45,6 +45,7 @@ public:
     std::string &getVersion();
     std::unordered_map<std::string, std::string> &getHeaders();
     std::string &getBody();
+    bool keepAlive();
 };
 
 

@@ -42,32 +42,73 @@ public:
               LogTarget logTarget, size_t maxQueueSize =  1024); // 初始化日志系统
     static void asyncWriteLogThread(); // 工作线程将日志异步写入文件的函数
     bool initLogFile(); // 初始化日志文件
-    void setEntryTime(); // 设置日志条目时间头
-    void setEntryType(LogLevel::value t); // 设置日志条目类型
-    void setEntryMsg(const std::string &msg);
+    // 外部调用接口，输出不同类型的日志信息
     template <class ...Args>
-    void addLog(LogLevel::value type, const char *format, Args... args);
-    void appendEntry(const std::string& entry);
-    void writeFile(const std::string &data);
-
-
+    static void addLog(LogLevel::value type, const char *format, Args... args);
+    template <class ...Args>
+    static void DEBUG(const char *format, Args... args);
+    template <class ...Args>
+    static void INFO(const char *format, Args... args);
+    template <class ...Args>
+    static void WARN(const char *format, Args... args);
+    template <class ...Args>
+    static void ERROR(const char *format, Args... args);
+    template <class ...Args>
+    static void FATAL(const char *format, Args... args);
+    // 外部获取实例的接口
     static Log* getInstance();
 
 private:
     Log();
     ~Log();
+    void setEntryTime(); // 设置日志条目时间头
+    void setEntryType(LogLevel::value t); // 设置日志条目类型
+    void setEntryMsg(const std::string &msg);
+    void appendEntry(const std::string& entry);
+    void writeFile(const std::string &data);
 };
 
 template <class ...Args>
 void Log::addLog(LogLevel::value type, const char *format, Args... args) {
-    if (type < logLevel_) return; // 过滤日志
+    Log *l = Log::getInstance();
+    if (type < l->logLevel_) return; // 过滤日志
     std::string message;
     util::String::formatPrintStr(message, format, args...);
-    setEntryType(type);
-    setEntryTime();
-    setEntryMsg(message);
-    auto entry = buf_.getStringAndReset();
-    appendEntry(entry);
+
+    // 向buf_中添加数据，如果多线程访问需要确保只有一个线程访问buf_
+    std::unique_lock<std::mutex> locker(l->mtx_);
+    l->setEntryType(type);
+    l->setEntryTime();
+    l->setEntryMsg(message);
+    auto entry = l->buf_.getStringAndReset();
+    locker.unlock();
+
+    l->appendEntry(entry);
+}
+
+template<class... Args>
+void Log::DEBUG(const char *format, Args... args) {
+    addLog(LogLevel::value::DEBUG, format, args...);
+}
+
+template<class... Args>
+void Log::INFO(const char *format, Args... args) {
+    addLog(LogLevel::value::INFO, format, args...);
+}
+
+template<class... Args>
+void Log::WARN(const char *format, Args... args) {
+    addLog(LogLevel::value::INFO, format, args...);
+}
+
+template<class... Args>
+void Log::ERROR(const char *format, Args... args) {
+    addLog(LogLevel::value::INFO, format, args...);
+}
+
+template<class... Args>
+void Log::FATAL(const char *format, Args... args) {
+    addLog(LogLevel::value::INFO, format, args...);
 }
 
 #endif //TINYWEBSERVER_LOG_H

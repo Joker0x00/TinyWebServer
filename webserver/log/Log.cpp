@@ -7,6 +7,7 @@
 Log::~Log() {
     printf("close logging...\n");
     isRun = false;
+    fflush(fp_);
     if (fp_ != nullptr) {
         fclose(fp_);
         fp_ = nullptr;
@@ -47,7 +48,6 @@ Log::init(const char *save_dir, const char *suffix, LogLevel::value logLevel, Lo
         return ;
     }
 }
-
 
 void Log::asyncWriteLogThread() {
     auto l = getInstance();
@@ -92,7 +92,10 @@ void Log::appendEntry(const std::string &entry) {
 
 void Log::writeFile(const std::string &data) {
     fprintf(fp_,"%s", data.c_str());
+    fflush(fp_);
 }
+
+
 
 
 

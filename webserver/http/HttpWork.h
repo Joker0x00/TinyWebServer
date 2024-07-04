@@ -18,7 +18,7 @@ private:
     bool isRun;
     bool et_;
     struct sockaddr_in addr_{};
-    iovec iv[2];
+    iovec iv[2]{};
     int io_cnt = 2;
     std::string srcDir_;
     ParseHttpRequest request_;

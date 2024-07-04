@@ -6,6 +6,9 @@
 
 Log::~Log() {
     printf("close logging...\n");
+    if (log_Queue_->size()) {
+        sleep(2);
+    }
     isRun = false;
     fflush(fp_);
     if (fp_ != nullptr) {

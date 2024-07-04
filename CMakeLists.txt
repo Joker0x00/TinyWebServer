@@ -24,6 +24,8 @@ add_executable(TinyWebServer main.cpp
         webserver/http/HttpWork.cpp
         webserver/http/HttpWork.h
         webserver/http/HttpResponse.cpp
+        webserver/timer/Timer.cpp
+        webserver/timer/Timer.h
 )
 set(CMAKE_CXX_FLAGS -pthread)
 message(STATUS "CMAKE_CXX_FLAGS = ${CMAKE_CXX_FLAGS}")

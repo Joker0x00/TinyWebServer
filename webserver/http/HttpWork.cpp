@@ -70,7 +70,9 @@ void HttpWork::writeFd(int *Errno) {
 }
 
 HttpWork::~HttpWork() {
-
+    writeBuf_.resetBuffer();
+    readBuf_.resetBuffer();
+    fd_ = -1;
 }
 
 size_t HttpWork::getWriteLen() {

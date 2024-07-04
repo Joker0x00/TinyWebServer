@@ -39,7 +39,7 @@ private:
 public:
 
     void init(const char* save_dir, const char* suffix, LogLevel::value logLevel,
-              LogTarget logTarget, size_t maxQueueSize =  1024); // 初始化日志系统
+              size_t maxQueueSize =  1024); // 初始化日志系统
     static void asyncWriteLogThread(); // 工作线程将日志异步写入文件的函数
     bool initLogFile(); // 初始化日志文件
     // 外部调用接口，输出不同类型的日志信息

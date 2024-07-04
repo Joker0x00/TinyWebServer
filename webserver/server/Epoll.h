@@ -16,11 +16,11 @@ public:
     explicit Epoll(int maxEvents);
     ~Epoll();
 
-    bool addFd(int fd, uint32_t ev);
-    bool modFd(int fd, uint32_t ev);
+    bool addFd(int fd, uint32_t ev) const;
+    bool modFd(int fd, uint32_t ev) const;
     bool delFd(int fd);
 
-    int wait();
+    int wait(int timeout);
     int getEventFd(size_t i);
     uint32_t getEvents(size_t i);
 };

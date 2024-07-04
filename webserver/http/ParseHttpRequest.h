@@ -34,6 +34,8 @@ public:
 
     ParseHttpRequest();
     ~ParseHttpRequest();
+    void init();
+
     bool parse(Buffer &buf);
     static bool parse_url(ParsedUrl *parsedURL, const std::string& url);
     bool parseRequestLine(const std::string &request_line);

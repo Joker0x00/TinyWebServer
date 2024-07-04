@@ -48,7 +48,7 @@ bool ParseHttpRequest::parseRequestBody(const std::string &body) {
 ParseHttpRequest::ParseHttpRequest() {
     state_ = PARSE_LINE;
     method_ = url_ = version_ = data_ = "";
-    headers_.clear();;
+    headers_.clear();
 }
 
 ParseHttpRequest::~ParseHttpRequest() {
@@ -142,5 +142,11 @@ bool ParseHttpRequest::keepAlive() {
         }
     }
     return false;
+}
+
+void ParseHttpRequest::init() {
+    state_ = PARSE_LINE;
+    method_ = url_ = version_ = data_ = "";
+    headers_.clear();
 }
 

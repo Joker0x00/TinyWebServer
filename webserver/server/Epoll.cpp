@@ -3,6 +3,7 @@
 //
 
 #include "Epoll.h"
+#include <iostream>
 
 Epoll::Epoll(int maxEvents): events(maxEvents), epollFd(epoll_create(maxEvents)) {
     assert(epollFd >= 0 && !events.empty());
@@ -19,26 +20,26 @@ bool Epoll::delFd(int fd) {
     return true;
 }
 
-bool Epoll::addFd(int fd, uint32_t ev) {
+bool Epoll::addFd(int fd, uint32_t ev) const {
     if (fd < 0) return false;
     struct epoll_event event = {0};
     event.events = ev;
     event.data.fd = fd;
-    epoll_ctl(epollFd, fd, EPOLL_CTL_ADD, &event);
+    epoll_ctl(epollFd, EPOLL_CTL_ADD, fd, &event);
     return true;
 }
 
-bool Epoll::modFd(int fd, uint32_t ev) {
+bool Epoll::modFd(int fd, uint32_t ev) const {
     if (fd < 0) return false;
     struct epoll_event event = {0};
     event.events = ev;
     event.data.fd = fd;
-    epoll_ctl(epollFd, fd, EPOLL_CTL_MOD, &event);
-    return false;
+    epoll_ctl(epollFd, EPOLL_CTL_MOD, fd, &event);
+    return true;
 }
 
-int Epoll::wait() {
-    return epoll_wait(epollFd, &events[0], static_cast<int>(events.size()), -1);
+int Epoll::wait(int timeout) {
+    return epoll_wait(epollFd, &events[0], static_cast<int>(events.size()), timeout);
 }
 
 uint32_t Epoll::getEvents(size_t i) {

@@ -16,22 +16,27 @@ private:
     Buffer readBuf_;
     int fd_;
     bool isRun;
-    bool et_;
     struct sockaddr_in addr_{};
     iovec iv[2]{};
     int io_cnt = 2;
-    std::string srcDir_;
+
     ParseHttpRequest request_;
     HttpResponse response_;
-
+public:
+    static std::string srcDir_;
+    static bool et_;
 public:
     HttpWork();
     ~HttpWork();
-    void init(bool et, const char* srcDir, int fd, const sockaddr_in &addr);
-    void writeFd(int *Errno);
+    void init(int fd, const sockaddr_in &addr);
+    size_t writeFd(int *Errno);
     size_t readFd(int *Errno);
     bool processHttp();
     size_t getWriteLen();
+    void closeConn();
+    bool getIsRun();
+    int getFd();
+    bool isKeepAlive();
 };
 
 

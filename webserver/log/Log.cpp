@@ -33,12 +33,11 @@ Log* Log::getInstance() {
 }
 
 void
-Log::init(const char *save_dir, const char *suffix, LogLevel::value logLevel, LogTarget logTarget,
+Log::init(const char *save_dir, const char *suffix, LogLevel::value logLevel,
           size_t maxQueueSize) {
     saveDir_ = save_dir;
     suffix_ = suffix;
     logLevel_ = logLevel;
-    logTarget_ = logTarget;
     filename_ = new char(MAX_FILENAME_LEN);
     if (!log_Queue_) {
         std::unique_ptr<LogQueue<std::string>> q(new LogQueue<std::string>(maxQueueSize));

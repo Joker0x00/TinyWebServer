@@ -80,8 +80,8 @@ void Timer::push(int id, int timeout, const TimerCallback &cb) {
 }
 
 Timer::Timer(size_t cnt) {
-    Log::INFO("%s", "Timer start...");
-    heap_.reserve(cnt);
+//    Log::INFO("%s", "Timer start...");
+    heap_.reserve(cnt + 1);
     heap_.emplace_back();
     si_ = 0;
 }

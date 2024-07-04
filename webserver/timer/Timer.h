@@ -38,10 +38,8 @@ private:
     // 定时器堆，采用vector数组方式存储
     std::vector<TimerNode> heap_;
     std::unordered_map<int, size_t> ref_;  // 从id到heap中的下标映射，方便直接操作某个node
-    std::atomic<size_t> si_;
-public:
-    explicit Timer(size_t cnt);
-    ~Timer();
+    std::atomic<size_t> si_{};
+
 private:
     void up(size_t u); // 将某个结点向上调整的操作
     void down(size_t u); // 将某个结点向下调整的操作
@@ -51,10 +49,11 @@ private:
     void swap_(size_t t1, size_t t2); // 交换两个下标的位置
 
 public:
+    explicit Timer(size_t cnt);
+    ~Timer();
     int getNextTick(); // 返回最近的定时器事件超时的间隔时间
     void reset(int id, int timeout); // 重新设置某个结点的过期时间
     void reset(int id, int timeout, TimerCallback &cb); // 重设某个结点的过期时间和回调函数
-    void push(int id, int timeout, TimerCallback &cb); // 向堆中插入一个新的定时器事件
     void execCb(int id); // 执行id的回调函数
     void tick(); // 处理堆中过期的定时器
     void push(int id, int timeout, const TimerCallback &cb);

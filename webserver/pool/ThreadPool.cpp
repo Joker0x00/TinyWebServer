@@ -12,10 +12,11 @@ ThreadPool::ThreadPool(int max_thread_cnt) {
     thread_vec.reserve(max_thread_cnt);
     for (int i = 0; i < max_thread_cnt; ++ i) {
         printf("init thread %d\n", i);
-        thread_vec[i] = std::thread([this]{
+        thread_vec[i] = std::thread([this, i]{
             std::unique_lock<std::mutex> locker(mtx_);
             while(true) {
                 if (!taskQueue_.empty()) {
+                    Log::INFO("thread pool: thread %d process task", i);
                     // 有任务，开始干活
                     auto task = taskQueue_.front();
                     taskQueue_.pop();
@@ -50,6 +51,7 @@ void ThreadPool::resetTaskQueue() {
 
 bool ThreadPool::addTask(std::function<void()> &&f) {
     std::lock_guard<std::mutex> locker(mtx_);
+    Log::INFO("thead pool: %s", "add task");
     taskQueue_.emplace(std::forward<std::function<void()>>(f));
     cv.notify_one();
     return false;

@@ -34,13 +34,13 @@ char *Buffer::getWritePtr() {
 ssize_t Buffer::readFd(int fd, int* Errno) {
     char stack_buf[STACK_LEN];
     iovec iv[2];
-    size_t leftLen = getLeftLen();
+    ssize_t leftLen = getLeftLen();
     iv[0].iov_base = getWritePtr();
     iv[0].iov_len = leftLen;
     iv[1].iov_base = stack_buf;
     iv[1].iov_len = STACK_LEN;
 
-    ssize_t len = readv(fd, iv, 2);
+    int len = readv(fd, iv, 2);
     if (len < 0) {
         // 记录报错信息
         *Errno = errno;

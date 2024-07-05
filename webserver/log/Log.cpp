@@ -93,8 +93,9 @@ void Log::appendEntry(const std::string &entry) {
 }
 
 void Log::writeFile(const std::string &data) {
-    fprintf(fp_,"%s", data.c_str());
-    fflush(fp_);
+    // 在此修改输出地方
+    fprintf(stdout,"%s", data.c_str());
+    fflush(stdout);
 }
 
 

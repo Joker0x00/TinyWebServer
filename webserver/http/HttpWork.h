@@ -29,8 +29,8 @@ public:
     HttpWork();
     ~HttpWork();
     void init(int fd, const sockaddr_in &addr);
-    size_t writeFd(int *Errno);
-    size_t readFd(int *Errno);
+    ssize_t writeFd(int *Errno);
+    ssize_t readFd(int *Errno);
     bool processHttp();
     size_t getWriteLen();
     void closeConn();

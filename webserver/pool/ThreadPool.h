@@ -11,6 +11,7 @@
 #include <thread>
 #include <condition_variable>
 #include <unistd.h>
+#include "../log/Log.h"
 class ThreadPool {
 private:
     std::queue<std::function<void()>>taskQueue_;

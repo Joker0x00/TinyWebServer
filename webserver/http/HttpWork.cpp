@@ -22,10 +22,11 @@ HttpWork::HttpWork() {
     memset(&addr_, 0, sizeof addr_);
 }
 
-size_t HttpWork::readFd(int *Errno) {
-    size_t len;
+ssize_t HttpWork::readFd(int *Errno) {
+    ssize_t len;
     do {
         len = readBuf_.readFd(fd_, Errno);
+        Log::DEBUG("read len: %d", len);
         if (len <= 0) {
             break;
         }
@@ -33,15 +34,16 @@ size_t HttpWork::readFd(int *Errno) {
     return len;
 }
 
-size_t HttpWork::writeFd(int *Errno) {
+ssize_t HttpWork::writeFd(int *Errno) {
     // 有两块数据要写: buf, 文件
     iv[0].iov_base = writeBuf_.getReadPtr();
     iv[0].iov_len = writeBuf_.getContentLen();
     iv[1].iov_base = response_.getFile();
     iv[1].iov_len = response_.getFileLen();
-    size_t len = 0;
+    ssize_t len = 0;
     do {
         len = writev(fd_, iv, io_cnt);
+        Log::DEBUG("write len: %d", len);
         if (len <= 0) {
             // 写错误
             *Errno = errno;
@@ -69,19 +71,18 @@ size_t HttpWork::writeFd(int *Errno) {
         if (iv[0].iov_len > 0) {
             // 此时第一个iovec没有写完
             // 我们将更新iovec的base和buffer中的指针位置
-            auto iv_len1 = writeBuf_.getContentLen();
-            iv_len1 -= len; // 还剩多少没写，可以为负
-            if (iv_len1 <= 0) {
+            auto iv_len1 = writeBuf_.getContentLen(); // 获取待写入数据的长度
+            if (iv_len1 >= len) { // buf中全部写完
                 // iv1已经全部写完，后续不再处理s
                 iv[0].iov_base = nullptr;
                 iv[0].iov_len = 0;
                 writeBuf_.resetBuffer();
-                len2 = -iv_len1;
+                len2 = iv_len1 - static_cast<size_t>(len); // 获取第二个iv结点写入的数据
             } else {
                 // iv1写了一部分
-                writeBuf_.addReadIdx(len);
+                writeBuf_.addReadIdx(len); // 更新指针
                 iv[0].iov_base = writeBuf_.getReadPtr();
-                iv[0].iov_len = iv_len1;
+                iv[0].iov_len = writeBuf_.getContentLen();
             }
         }
         // 处理第二个缓冲区
@@ -115,12 +116,24 @@ bool HttpWork::processHttp() {
     request_.init(); // 清空上一次的数据
     // 请求成功解析
     if (request_.parse(readBuf_)) {
+        Log::INFO("%s", "parse request successfully");
+        std::string headers;
+        ParsedUrl *url = request_.getParsedUrl_();
+        for (auto &it : request_.getHeaders()) {
+            headers += it.first + ": " + it.second + "\n";
+        }
+        std:: string params;
+        for (auto &it : url->queryParams) {
+            params += it.first + ": " + it.second + "\n";
+        }
+        Log::INFO("\nmethod: %s\nversion: %s\nurl: %s\nheaders:\n%s\nparams:\n%s\nbody: %s", request_.getMethod().c_str(), request_.getVersion().c_str(), url->path.c_str(), headers.c_str(), params.c_str(), request_.getBody().c_str());
         response_.init(request_.getParsedUrl_()->path, srcDir_, request_.keepAlive(), 200);
     } else {
         response_.init(request_.getParsedUrl_()->path, srcDir_, request_.keepAlive(), 400);
     }
+    Log::INFO("making response%s", "");
     response_.makeResponse(writeBuf_);
-    // 输出报文
+    // 输出报文11
     iv[0].iov_base = writeBuf_.getReadPtr();
     iv[0].iov_len = writeBuf_.getContentLen();
     io_cnt = 1;
@@ -130,6 +143,7 @@ bool HttpWork::processHttp() {
         iv[1].iov_len = response_.getFileLen();
         io_cnt = 2;
     }
+    Log::DEBUG("wait for write response%s", "");
     // 返回true表示等待写
     return true;
 }

@@ -10,6 +10,7 @@
 #include <sys/mman.h>
 #include "../utils/Utils.h"
 #include "../buffer/Buffer.h"
+#include "../log/Log.h"
 
 
 // 构造HTTP响应报文

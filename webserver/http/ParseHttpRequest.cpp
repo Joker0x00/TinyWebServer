@@ -26,7 +26,7 @@ bool ParseHttpRequest::parseRequestLine(const std::string &request_line) {
 }
 
 bool ParseHttpRequest::parseRequestHeader(const std::string &header_line) {
-    std::regex header_pattern(R"(^([^:]*): (.*)$)");
+    std::regex header_pattern(R"(^([^:]*):(.*)$)");
     std::smatch matches;
     if (std::regex_match(header_line, matches, header_pattern)) {
         if (matches.size() == 3) {

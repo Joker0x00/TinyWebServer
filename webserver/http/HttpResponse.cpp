@@ -78,15 +78,18 @@ void HttpResponse::addHeaders(Buffer &buf) {
     } else {
         buf.append("close\r\n");
     }
-    buf.append("Content-type: " + getFileType() + "\r\n");
+    buf.append("Content-type:" + getFileType() + "\r\n");
+    printf("FileType: %s\n", getFileType().c_str());
 }
 
 std::string HttpResponse::getFileType() {
     auto idx = path_.find_last_of('.');
+//    printf("path: %s\n", path_.c_str());
     if (idx == std::string::npos) {
         return "text/plain";
     }
     std::string suffix = path_.substr(idx);
+//    std::printf("suffix: %s", suffix.c_str());
     if (!SUFFIX_TYPE.count(suffix)) {
         return "text/plain";
     }
@@ -94,12 +97,16 @@ std::string HttpResponse::getFileType() {
 }
 
 void HttpResponse::addBody(Buffer &buf) {
-    buf.append("Content-Length: " + std::to_string(getFileLen()) + "\r\n\r\n");
+//    buf.append("Content-Length: " + std::to_string(getFileLen()) + "\r\n\r\n");
+//    Log::DEBUG("############%s", "");
+    Log::DEBUG("%d", "2");
     int srcFd = open((srcDir_ + path_).c_str(), O_RDONLY);
+
     if (srcFd < 0) {
         ErrorContent(buf, "File Not Found");
         return ;
     }
+//    printf("srcFd: %d\n", srcFd);
     // 将文件映射到内存中
     int *addr = (int*)(mmap(nullptr, getFileLen(), PROT_READ, MAP_PRIVATE, srcFd,
                                        0));
@@ -109,6 +116,8 @@ void HttpResponse::addBody(Buffer &buf) {
     }
     mmFile_ = (char*)(addr);
     close(srcFd);
+    buf.append("Content-Length: " + std::to_string(getFileLen()) + "\r\n\r\n");
+    Log::DEBUG("%d", "3");
 }
 
 size_t HttpResponse::getFileLen() const {
@@ -118,26 +127,54 @@ void HttpResponse::ErrorContent(Buffer& buff, const std::string& message)
 {
     std::string body;
     std::string status;
-    body += "<html><title>Error</title>";
-    body += "<body bgcolor=\"ffffff\">";
-    if(CODE.count(code_) == 1) {
-        status = CODE.find(code_)->second;
-    } else {
-        status = "Bad Request";
-    }
-    body += std::to_string(code_) + " : " + status  + "\n";
-    body += "<p>" + message + "</p>";
-    body += "<hr><em>TinyWebServer</em></body></html>";
+    body = "<!DOCTYPE html>\n"
+    "<html lang=\"en\">\n"
+    "<head>\n"
+    "    <meta charset=\"UTF-8\">\n"
+    "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
+    "    <title>404 Not Found</title>\n"
+    "    <style>\n"
+    "        body {\n"
+    "            font-family: Arial, sans-serif;\n"
+    "            text-align: center;\n"
+    "            padding: 50px;\n"
+    "        }\n"
+    "        h1 {\n"
+    "            font-size: 36px;\n"
+    "        }\n"
+    "        p {\n"
+    "            font-size: 18px;\n"
+    "            margin-top: 20px;\n"
+    "        }\n"
+    "    </style>\n"
+    "</head>\n"
+    "<body>\n"
+    "    <h1>";
+    body += message;
+    body += "</h1>\n"
+    "    <p>The requested URL was not found on this server.</p>\n"
+    "</body>\n"
+    "</html>";
+//    body += "<html><title>Error</title>";
+//    body += "<body bgcolor=\"ffffff\">";
+//    if(CODE.count(code_) == 1) {
+//        status = CODE.find(code_)->second;
+//    } else {
+//        status = "Bad Request";
+//    }
+//    body += std::to_string(code_) + " : " + status  + "\n";
+//    body += "<p>" + message + "</p>";
+//    body += "<hr><em>TinyWebServer</em></body></html>";
 
     buff.append("Content-length: " + std::to_string(body.size()) + "\r\n\r\n");
     buff.append(body);
 }
 
 void HttpResponse::ErrorHtml() {
-    if(CODE.count(code_) == 1) {
-        path_ = CODE.find(code_)->second;
+    if(CODE_TO_HTML.count(code_) == 1) {
+        path_ = CODE_TO_HTML.find(code_)->second;
         // 获取文件的状态信息
-        stat((srcDir_ + path_).data(), &mmFileStat_);
+        stat((srcDir_ + path_).c_str(), &mmFileStat_);
     }
 }
 
@@ -150,6 +187,8 @@ void HttpResponse::makeResponse(Buffer &buf) {
         }
     }
     ErrorHtml();
+    puts("2");
+    fflush(stdout);
     addResponseLine(buf);
     addHeaders(buf);
     addBody(buf);

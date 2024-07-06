@@ -150,3 +150,7 @@ void ParseHttpRequest::init() {
     headers_.clear();
 }
 
+HttpParams ParseHttpRequest::getParams() {
+    return {method_, data_, parsedUrl_.path, parsedUrl_.queryParams};
+}
+

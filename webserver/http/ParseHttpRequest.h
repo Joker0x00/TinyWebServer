@@ -12,6 +12,8 @@
 #include "../utils/Utils.h"
 #include "ParsedUrl.h"
 #include "../log/Log.h"
+#include "HttpMethod.h"
+#include "HttpParams.h"
 
 enum Status {
     PARSE_LINE,
@@ -41,6 +43,9 @@ public:
     bool parseRequestLine(const std::string &request_line);
     bool parseRequestHeader(const std::string &header_line);
     bool parseRequestBody(const std::string &body);
+
+    HttpParams getParams();
+
 
     std::string &getMethod();
     ParsedUrl *getParsedUrl_();

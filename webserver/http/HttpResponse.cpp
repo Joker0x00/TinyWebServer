@@ -69,6 +69,11 @@ void HttpResponse::addResponseLine(Buffer &buf) {
     util::String::formatPrintStr(res, "%s %d %s\r\n", "HTTP/1.1", code_, title_.c_str());
     buf.append(res);
 }
+void HttpResponse::addResponseLine(int code, const std::string &title, Buffer &buf) {
+    std::string res;
+    util::String::formatPrintStr(res, "%s %d %s\r\n", "HTTP/1.1", code, title.c_str());
+    buf.append(res);
+}
 
 void HttpResponse::addHeaders(Buffer &buf) {
     buf.append("Connection: ");
@@ -80,6 +85,17 @@ void HttpResponse::addHeaders(Buffer &buf) {
     }
     buf.append("Content-type:" + getFileType() + "\r\n");
     printf("FileType: %s\n", getFileType().c_str());
+}
+
+void HttpResponse::addHeaders(bool keepAlive, Buffer &buf) {
+    buf.append("Connection: ");
+    if (keepAlive) {
+        buf.append("keep-alive\r\n");
+        buf.append("keep-alive: max=6, timeout=120\r\n");
+    } else {
+        buf.append("close\r\n");
+    }
+    buf.append("Content-type:application/json\r\n");
 }
 
 std::string HttpResponse::getFileType() {
@@ -119,6 +135,12 @@ void HttpResponse::addBody(Buffer &buf) {
     buf.append("Content-Length: " + std::to_string(getFileLen()) + "\r\n\r\n");
     Log::DEBUG("%d", "3");
 }
+
+void HttpResponse::addBody(const std::string &data, Buffer &buf) {
+    buf.append("Content-Length: " + std::to_string(data.length()) + "\r\n\r\n");
+    buf.append(data + "\r\n");
+}
+
 
 size_t HttpResponse::getFileLen() const {
     return mmFileStat_.st_size;
@@ -187,11 +209,20 @@ void HttpResponse::makeResponse(Buffer &buf) {
         }
     }
     ErrorHtml();
-    puts("2");
     fflush(stdout);
     addResponseLine(buf);
     addHeaders(buf);
     addBody(buf);
+}
+
+void HttpResponse::makeResponse(std::shared_ptr<Response> res, bool keepAlive, Buffer &buf) {
+    addResponseLine(res->code_, CODE[res->code_], buf);
+    addHeaders(keepAlive, buf);
+    if (res->hasData())
+        addBody(res->jsonToStr(), buf);
+    else {
+        buf.append("Content-Length: 0\r\n\r\n");
+    }
 }
 
 char * HttpResponse::getFile() {

@@ -3,7 +3,7 @@ project(TinyWebServer)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(TinyWebServer main.cpp
+add_executable(TinyWebServer webserver/main.cpp
         webserver/buffer/Buffer.cpp
         webserver/buffer/Buffer.h
         webserver/log/Log.cpp
@@ -18,7 +18,6 @@ add_executable(TinyWebServer main.cpp
         webserver/http/HttpMethod.h
         webserver/http/ParsedUrl.h
         webserver/http/HttpResponse.h
-        webserver/http/HttpProcess.h
         webserver/http/HttpParams.h
         webserver/http/HttpWork.cpp
         webserver/http/HttpWork.h
@@ -29,6 +28,16 @@ add_executable(TinyWebServer main.cpp
         webserver/server/Epoll.h
         webserver/server/Server.cpp
         webserver/server/Server.h
+        webserver/urls/Router.h
+        webserver/views/Base.h
+        webserver/views/Login.h
+        webserver/http/Response.h
+        webserver/lib/json.cpp
+        webserver/lib/json/json.h
+        webserver/lib/json/json-forwards.h
+        webserver/http/HttpMethod.cpp
+        webserver/urls/Router.cpp
+        webserver/http/HttpParams.cpp
 )
 set(CMAKE_CXX_FLAGS -pthread)
 message(STATUS "CMAKE_CXX_FLAGS = ${CMAKE_CXX_FLAGS}")

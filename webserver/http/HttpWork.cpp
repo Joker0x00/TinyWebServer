@@ -116,33 +116,44 @@ bool HttpWork::processHttp() {
     request_.init(); // 清空上一次的数据
     // 请求成功解析
     if (request_.parse(readBuf_)) {
+        // 解析成功，正式进入业务逻辑处理流程
         Log::INFO("%s", "parse request successfully");
-        std::string headers;
-        ParsedUrl *url = request_.getParsedUrl_();
-        for (auto &it : request_.getHeaders()) {
-            headers += it.first + ": " + it.second + "\n";
-        }
-        std:: string params;
-        for (auto &it : url->queryParams) {
-            params += it.first + ": " + it.second + "\n";
-        }
-        Log::INFO("\nmethod: %s\nversion: %s\nurl: %s\nheaders:\n%s\nparams:\n%s\nbody: %s", request_.getMethod().c_str(), request_.getVersion().c_str(), url->path.c_str(), headers.c_str(), params.c_str(), request_.getBody().c_str());
-        response_.init(request_.getParsedUrl_()->path, srcDir_, request_.keepAlive(), 200);
+//        std::string headers;
+//        ParsedUrl *url = request_.getParsedUrl_();
+//        for (auto &it : request_.getHeaders()) {
+//            headers += it.first + ": " + it.second + "\n";
+//        }
+//        std:: string params;
+//        for (auto &it : url->queryParams) {
+//            params += it.first + ": " + it.second + "\n";
+//        }
+        auto params = request_.getParams();
+        auto response = Router::process(params);
+
+//        Log::INFO("\nmethod: %s\nversion: %s\nurl: %s\nheaders:\n%s\nparams:\n%s\nbody: %s", request_.getMethod().c_str(), request_.getVersion().c_str(), url->path.c_str(), headers.c_str(), params.c_str(), request_.getBody().c_str());
+        // 生成HTTP Response
+        // 无用代码
+//        response_.init(request_.getParsedUrl_()->path, srcDir_, request_.keepAlive(), 200);
+        // 根据response生成http响应报文，并写入缓冲区，等待服务器发送
+        response_.makeResponse(response, request_.keepAlive(), writeBuf_);
+
     } else {
-        response_.init(request_.getParsedUrl_()->path, srcDir_, request_.keepAlive(), 400);
+//        response_.init(request_.getParsedUrl_()->path, srcDir_, request_.keepAlive(), 400);
+        std::shared_ptr<Response> r = std::make_shared<Response>(404);
+        response_.makeResponse(r, request_.keepAlive(), writeBuf_);
     }
     Log::INFO("making response%s", "");
-    response_.makeResponse(writeBuf_);
+//    response_.makeResponse(writeBuf_);
     // 输出报文11
     iv[0].iov_base = writeBuf_.getReadPtr();
     iv[0].iov_len = writeBuf_.getContentLen();
     io_cnt = 1;
 
-    if (response_.getFile() && response_.getFileLen() > 0) {
-        iv[1].iov_base = response_.getFile();
-        iv[1].iov_len = response_.getFileLen();
-        io_cnt = 2;
-    }
+//    if (response_.getFile() && response_.getFileLen() > 0) {
+//        iv[1].iov_base = response_.getFile();
+//        iv[1].iov_len = response_.getFileLen();
+//        io_cnt = 2;
+//    }
     Log::DEBUG("wait for write response%s", "");
     // 返回true表示等待写
     return true;

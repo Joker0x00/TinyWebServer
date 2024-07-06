@@ -7,17 +7,15 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
-
+#include "HttpMethod.h"
 class HttpParams {
 public:
-    const std::string method;
-    const std::string body;
-    const std::unordered_map<std::string, std::string> urlParams;
-
-    HttpParams(std::string &method, std::string &body,
-               const std::unordered_map<std::string, std::string> &urlParams) : method(std::move(method)), body(std::move(body)),
-                                                                                urlParams(urlParams) {}
-    HttpParams()=default;
+    HttpMethod::MethodType method_=HttpMethod::MethodType::NONE;
+    std::string body_; // 请求体 通常是json格式
+    std::unordered_map<std::string, std::string> urlParams_; // url中的参数
+    std::string url_;
+    HttpParams(const std::string& method, std::string body, std::string url,
+               std::unordered_map<std::string, std::string> &urlParams);
     ~HttpParams()=default;
 };
 

@@ -11,6 +11,7 @@
 #include "../utils/Utils.h"
 #include "../buffer/Buffer.h"
 #include "../log/Log.h"
+#include "Response.h"
 
 
 // 构造HTTP响应报文
@@ -44,6 +45,16 @@ public:
     void ErrorHtml();
 
     void makeResponse(Buffer &buf);
+
+    void makeResponse(std::shared_ptr<Response> res, bool keepAlive, Buffer &buf);
+
+    void addResponseLine(int code, const std::string &title, Buffer &buf);
+
+    void addHeaders(bool keepAlive, Buffer &buf);
+
+    void addBody(const std::string &data, Buffer &buf);
+
+
 };
 
 

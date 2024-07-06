@@ -6,10 +6,12 @@
 #define TINYWEBSERVER_HTTPMETHOD_H
 
 #include <string>
-
+#include <iostream>
+#include <unordered_map>
 class HttpMethod {
 public:
-    enum method {
+    enum MethodType {
+        NONE,
         GET,
         HEAD,
         POST,
@@ -19,7 +21,8 @@ public:
         OPTIONS,
         TRACE
     };
-    static std::string toStr(method value) {
+    static std::unordered_map<std::string, MethodType> toMethod;
+    static std::string toStr(MethodType value) {
         switch (value) {
             case GET:
                 return "GET";
@@ -38,8 +41,9 @@ public:
             case TRACE:
                 return "TRACE";
             default:
-                return "";
+                return "ERROR";
         }
     }
 };
+
 #endif //TINYWEBSERVER_HTTPMETHOD_H

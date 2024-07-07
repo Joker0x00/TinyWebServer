@@ -9,10 +9,13 @@
 
 class Base {
 public:
-    virtual std::shared_ptr<Response> GET(HttpParams &params) = 0;
-    virtual std::shared_ptr<Response> POST(HttpParams &params) = 0;
-    virtual std::shared_ptr<Response> PUT(HttpParams &params) = 0;
-    virtual std::shared_ptr<Response> DELETE(HttpParams &params) = 0;
+    virtual std::string GET(HttpParams &params) = 0;
+    virtual std::string POST(HttpParams &params) = 0;
+    virtual std::string PUT(HttpParams &params) = 0;
+    virtual std::string DELETE(HttpParams &params) = 0;
+    virtual std::string OPTIONS(HttpParams &params) {
+        return "";
+    }
     virtual bool isNull() {
         return true;
     }

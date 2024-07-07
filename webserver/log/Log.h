@@ -29,8 +29,8 @@ private:
     std::unique_ptr<LogQueue<std::string>> log_Queue_; // 日志队列
     std::unique_ptr<std::thread> workThread_; // 处理写日志的线程
     FILE *fp_; // 日志文件描述符
+    LogTarget target_;
     LogLevel::value logLevel_;
-    LogTarget logTarget_;
     std::mutex mtx_;
     Buffer buf_;
     bool isRun;
@@ -38,7 +38,7 @@ private:
     static const size_t MAX_FILENAME_LEN = 50; // 最大文件名限制
 public:
 
-    void init(const char* save_dir, const char* suffix, LogLevel::value logLevel,
+    void init(LogTarget target, const char* save_dir, const char* suffix, LogLevel::value logLevel,
               size_t maxQueueSize =  1024); // 初始化日志系统
     static void asyncWriteLogThread(); // 工作线程将日志异步写入文件的函数
     bool initLogFile(); // 初始化日志文件

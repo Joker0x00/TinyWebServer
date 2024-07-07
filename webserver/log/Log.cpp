@@ -25,6 +25,8 @@ Log::Log() {
     log_Queue_ = nullptr;
     workThread_ = nullptr;
     isRun = true;
+    fp_ = nullptr;
+    target_ = LOG_TARGET_CONSOLE;
 }
 
 Log* Log::getInstance() {
@@ -33,12 +35,13 @@ Log* Log::getInstance() {
 }
 
 void
-Log::init(const char *save_dir, const char *suffix, LogLevel::value logLevel,
+Log::init(LogTarget target, const char *save_dir, const char *suffix, LogLevel::value logLevel,
           size_t maxQueueSize) {
     saveDir_ = save_dir;
     suffix_ = suffix;
     logLevel_ = logLevel;
     filename_ = new char(MAX_FILENAME_LEN);
+    target_ = target;
     if (!log_Queue_) {
         std::unique_ptr<LogQueue<std::string>> q(new LogQueue<std::string>(maxQueueSize));
         log_Queue_ = std::move(q);
@@ -60,13 +63,17 @@ void Log::asyncWriteLogThread() {
 }
 
 bool Log::initLogFile() {
-    char time_str[25];
-    util::Date::getDateTimeByFormat(time_str, 25, "%Y_%m_%d_%H_%M_%S");
-    snprintf(filename_, MAX_FILENAME_LEN, "%s%s", time_str, suffix_);
-    puts(filename_);
-    fp_ = util::File::createFile(saveDir_, filename_);
-    if (fp_ == nullptr) {
-        return false;
+    if (target_ == LOG_TARGET_CONSOLE) {
+        fp_ = stdout;
+    } else {
+        char time_str[25];
+        util::Date::getDateTimeByFormat(time_str, 25, "%Y_%m_%d_%H_%M_%S");
+        snprintf(filename_, MAX_FILENAME_LEN, "%s%s", time_str, suffix_);
+        puts(filename_);
+        fp_ = util::File::createFile(saveDir_, filename_);
+        if (fp_ == nullptr) {
+            return false;
+        }
     }
     printf("start logging...\n");
     return true;
@@ -93,9 +100,8 @@ void Log::appendEntry(const std::string &entry) {
 }
 
 void Log::writeFile(const std::string &data) {
-    // 在此修改输出地方
-    fprintf(stdout,"%s", data.c_str());
-    fflush(stdout);
+    fprintf(fp_,"%s", data.c_str());
+    fflush(fp_);
 }
 
 

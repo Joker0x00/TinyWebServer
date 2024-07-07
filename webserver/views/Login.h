@@ -7,23 +7,39 @@
 #include "Base.h"
 #include "../http/HttpParams.h"
 #include "../http/HttpResponse.h"
+#include "../lib/json/json.h"
 // 登录接口
 class Login: public Base{
 public:
-    std::shared_ptr<Response> GET(HttpParams &params) override {
-        printf("处理get请求");
-        return std::make_shared<Response>(200);
+    std::string GET(HttpParams &params) override {
+        Log::INFO("%s", "/login, GET");
+        return Response::getResponse(200, "success");
     }
 
-    std::shared_ptr<Response> POST(HttpParams &params) override {
+    std::string POST(HttpParams &params) override {
+        // 此处验证参数
+        printf("%s\n", params.body_.c_str());
+        Json::Reader reader;
+        Json::Value data;
+        if (!reader.parse(params.body_, data)) {
+            return Response::getResponse(400, "json parse failed");
+        }
+        std::string username = data.get("username", "").asString();
+        std::string password = data.get("password", "").asString();
+        if (username.empty() || password.empty()) {
+            return Response::getResponse(200, "params is null");
+        }
+        if (!(username == "wy" && password == "123456")) {
+            return Response::getResponse(200, "username or password is error");
+        }
+        return Response::getResponse(200, "success");
+    }
+
+    std::string PUT(HttpParams &params) override {
 
     }
 
-    std::shared_ptr<Response> PUT(HttpParams &params) override {
-
-    }
-
-    std::shared_ptr<Response> DELETE(HttpParams &params) override {
+    std::string DELETE(HttpParams &params) override {
 
     }
 

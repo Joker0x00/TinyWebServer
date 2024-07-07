@@ -2323,7 +2323,7 @@ namespace Json {
  */
 #if JSON_USE_EXCEPTION
 
- @todo <= add detail about condition in exception
+// <= add detail about condition in exception
 #define JSON_ASSERT(condition)                                                 \
   do {                                                                         \
     if (!(condition)) {                                                        \

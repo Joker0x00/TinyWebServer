@@ -9,4 +9,5 @@ std::unordered_map<std::string, HttpMethod::MethodType> HttpMethod::toMethod = {
         {"POST", HttpMethod::POST},
         {"PUT", HttpMethod::PUT},
         {"GET", HttpMethod::DELETE},
+        {"OPTIONS", HttpMethod::OPTIONS}
 };

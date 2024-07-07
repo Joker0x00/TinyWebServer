@@ -12,49 +12,26 @@
 #include "../buffer/Buffer.h"
 #include "../log/Log.h"
 #include "Response.h"
+#include "HttpMethod.h"
 
 
 // 构造HTTP响应报文
 class HttpResponse {
 private:
-    std::unordered_map<std::string, std::string> SUFFIX_TYPE;
-    std::unordered_map<int, std::string> CODE;
-    std::unordered_map<int, std::string>  CODE_TO_HTML;
-    int code_;
-    std::string title_;
-    bool keepAlive_;
-
-    char* mmFile_;
-    struct stat mmFileStat_{};
-
-    std::string path_;
-    std::string srcDir_;
+    static std::unordered_map<int, std::string> CODE;
 public:
-    HttpResponse();
-    ~HttpResponse();
-    void init(std::string &path, std::string &srcDir, bool keepAlive, int code);
+    HttpResponse() = default;
+    ~HttpResponse() = default;
 
-    std::string getFileType();
-    size_t getFileLen() const;
-    char* getFile();
-    void unmapFile();
-    void addResponseLine(Buffer &buf);
-    void addHeaders(Buffer &buf);
-    void addBody(Buffer &buf);
-    void ErrorContent(Buffer& buff, const std::string& message);
-    void ErrorHtml();
+    static void makeResponse(HttpMethod::MethodType method, int code, std::string& res, bool keepAlive, Buffer &buf);
 
-    void makeResponse(Buffer &buf);
+    static void addResponseLine(int code, const std::string &title, Buffer &buf);
 
-    void makeResponse(std::shared_ptr<Response> res, bool keepAlive, Buffer &buf);
+    static void addHeaders(bool keepAlive, Buffer &buf);
 
-    void addResponseLine(int code, const std::string &title, Buffer &buf);
+    static void addBody(const std::string &data, Buffer &buf);
 
-    void addHeaders(bool keepAlive, Buffer &buf);
-
-    void addBody(const std::string &data, Buffer &buf);
-
-
+    static void addCors(Buffer &buf);
 };
 
 

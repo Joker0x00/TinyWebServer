@@ -4,7 +4,7 @@
 
 #include "Server.h"
 
-Server::Server(const char *ip, int port, int trigMod, int timeout, LogLevel::value logLevel, int max_thread_cnt,
+Server::Server(const char *ip, int port, int trigMod, int timeout, LogTarget target, LogLevel::value logLevel, int max_thread_cnt,
                int max_timer_cnt, int max_fd, int max_epoll_events, const std::string &srcDir):ip_(ip), port_(port),
                trigMod_(trigMod), timeoutMs_(timeout), MAXFD_(max_fd), userCnt(0),
                threadPool_(new ThreadPool(max_thread_cnt)), timer_(new Timer(max_timer_cnt)),
@@ -14,7 +14,7 @@ Server::Server(const char *ip, int port, int trigMod, int timeout, LogLevel::val
 //        srcDir = std::string(getcwd(nullptr, 0));
     auto l = Log::getInstance();
 //     初始化日志系统
-    l->init((srcDir + "/log").c_str(), ".txt", logLevel);
+    l->init(target, (srcDir + "/log").c_str(), ".txt", logLevel);
     HttpWork::srcDir_ = srcDir + "/html";
 
 //     初始化监听事件

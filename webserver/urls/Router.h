@@ -17,7 +17,7 @@ class Router {
 public:
     static std::unordered_map<std::string, std::shared_ptr<Base>> urlsToFunc; // urls映射
     // 分发并处理请求
-    static std::shared_ptr<Response> process(HttpParams &params);
+    static std::string process(HttpParams &params);
 };
 
 #endif //TINYWEBSERVER_ROUTER_H

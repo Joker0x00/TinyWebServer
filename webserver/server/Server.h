@@ -39,7 +39,7 @@ private:
     int userCnt;
 public:
     // 提供服务器运行参数
-    Server(const char* ip, int port, int trigMod, int timeout, LogLevel::value logLevel, int max_thread_cnt, int max_timer_cnt, int max_fd, int max_epoll_events, const std::string &srcDir="");
+    Server(const char* ip, int port, int trigMod, int timeout, LogTarget target, LogLevel::value logLevel, int max_thread_cnt, int max_timer_cnt, int max_fd, int max_epoll_events, const std::string &srcDir="");
     void initTrigMode();
     bool startListen();
     int setNonBlocking(int fd);

@@ -23,7 +23,6 @@ private:
     int io_cnt = 2;
 
     ParseHttpRequest request_;
-    HttpResponse response_;
 public:
     static std::string srcDir_;
     static bool et_;

@@ -137,7 +137,7 @@ void Server::run() {
         if (timeoutMs_ > 0) {
             // 清理过期时间
             timeout = timer_->getNextTick();
-            Log::INFO("Server: timeout: %d", timeout);
+            Log::INFO("(main): timeout: %d", timeout);
         }
         // 等待直到下一个定时事件超时，如果timeout为-1代表队列中已经没有定时任务，阻塞等待
         int cnt = epoll_->wait(timeout);
@@ -146,23 +146,23 @@ void Server::run() {
             int fd = epoll_->getEventFd(i);
             uint32_t events = epoll_->getEvents(i);
             if (fd == listenFd_) {
-                Log::INFO("listen event: fd(%d)", fd);
+                Log::INFO("(main): listen event: fd(%d)", fd);
                 // 处理服务器连接请求
                 dealListen();
             } else if (events & (EPOLLRDHUP & EPOLLERR & EPOLLHUP)) {
-                assert(users_.count(fd));
-                Log::INFO("close event: fd(%d)", fd);
+                assert(users_[fd].getIsRun());
+                Log::INFO("(main): close event: fd(%d)", fd);
                 closeConn(users_[fd]); // 关闭连接
             } else if (events & EPOLLIN) {
-                assert(users_.count(fd));
-                Log::INFO("read event: fd(%d)", fd);
+                assert(users_[fd].getIsRun());
+                Log::INFO("(main): read event: fd(%d)", fd);
                 dealRead(users_[fd]);
             } else if (events & EPOLLOUT) {
-                assert(users_.count(fd));
-                Log::INFO("write event: fd(%d)", fd);
+                assert(users_[fd].getIsRun());
+                Log::INFO("(main): write event: fd(%d)", fd);
                 dealWrite(users_[fd]);
             } else {
-                Log::ERROR("%s", "unexpected event");
+                Log::ERROR("(main): %s", "unexpected event");
             }
         }
     }
@@ -172,7 +172,7 @@ void Server::closeConn(HttpWork &client) {
     if (!client.getIsRun())
         return;
     userCnt --;
-    Log::INFO("user %d is closed", client.getFd());
+    Log::INFO("(main): user %d is closed", client.getFd());
     client.closeConn();
 }
 
@@ -196,6 +196,7 @@ void Server::addClient(int fd, sockaddr_in &addr) {
     // 初始化连接
     users_[fd].init(fd, addr);
     HttpWork &client = users_[fd];
+    Log::DEBUG("(main): user %d isRun: %s", fd, std::to_string(client.getIsRun()).c_str());
     setNonBlocking(fd);
     // 假如监听列表
     epoll_->addFd(fd, EPOLLIN|httpConnEvents_);
@@ -204,7 +205,7 @@ void Server::addClient(int fd, sockaddr_in &addr) {
         // 添加定时事件u
         timer_->push(fd, timeoutMs_, [this, &client] { closeConn(client); }); // 这里报错了，原因是closeConn的client参数应为指针
     }
-    Log::INFO("user[%d] in, ip: %s, port: %d", fd, inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
+    Log::INFO("(main): user[%d] in, ip: %s, port: %d", fd, inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
 }
 
 void Server::dealWrite(HttpWork &client) {
@@ -214,6 +215,7 @@ void Server::dealWrite(HttpWork &client) {
 }
 
 void Server::dealRead(HttpWork &client) {
+    Log::INFO("(main): dealRead client: %d", client.getFd());
     assert(client.getIsRun());
     extendTime(client.getFd());
     threadPool_->addTask([this, &client] { readCb(client); });
@@ -223,14 +225,14 @@ void Server::sendError(int fd, const char *msg) {
     assert(fd >= 0);
     auto len = write(fd, msg, sizeof msg);
     if (len <= 0) {
-        Log::WARN("send error to client %d error", fd);
+        Log::WARN("(main): send error to client %d error", fd);
     }
     close(fd);
 }
 
 
 void Server::extendTime(int fd) {
-    assert(users_.count(fd));
+    assert(fd >= 0);
     timer_->reset(fd, timeoutMs_);
 }
 
@@ -238,19 +240,21 @@ void Server::readCb(HttpWork &client) {
     assert(client.getIsRun());
     int Errno = 0;
     auto len = client.readFd(&Errno);
-    if (len <= 0 && Errno != EAGAIN) {
-        // 出现了其他错误
+    if (len <= 0 && !(Errno == EAGAIN || Errno == 0)) {
+        // 出现了其他错误，关闭连接
+        Log::WARN("(thread):read error: %d, client: %d", Errno, client.getFd());
         closeConn(client);
         return;
     }
-    Log::INFO("thread pool: read request from user %d", client.getFd());
+    Log::INFO("(thread): read request from user %d", client.getFd());
     if (client.processHttp()) {
         // 成功处理了http读请求，response已生成，等待写出
         epoll_->modFd(client.getFd(), EPOLLOUT | httpConnEvents_);
-        Log::INFO("thread pool: process request from user %d", client.getFd());
+        Log::INFO("(thread): process request from user %d", client.getFd());
     } else {
         // http请求未处理，读缓冲为空，重新等待请求
         epoll_->modFd(client.getFd(), EPOLLIN | httpConnEvents_);
+        Log::WARN("(thread): HTTP process error, client: %d", client.getFd());
     }
 }
 
@@ -259,7 +263,7 @@ void Server::writeCb(HttpWork &client) {
     int Errno = 0;
     auto len = client.writeFd(&Errno);
     if (client.getWriteLen() == 0) {
-        Log::INFO("thread pool: write successfully from user %d", client.getFd());
+        Log::INFO("(thread): write successfully from user %d", client.getFd());
         // 传输成功
         if (client.isKeepAlive()) {
             epoll_->modFd(client.getFd(), EPOLLIN | httpConnEvents_);

@@ -7,34 +7,41 @@ bool HttpWork::et_;
 std::string HttpWork::srcDir_;
 
 void HttpWork::init(int fd, const sockaddr_in &addr) {
+    std::lock_guard<std::mutex> locker(mtx_);
     assert(fd > 0);
     fd_ = fd;
     addr_ = addr;
     writeBuf_.resetBuffer();
     readBuf_.resetBuffer();
     request_.init();
-    isRun = true;
+    isRun_ = true;
 }
 
 HttpWork::HttpWork() {
+    std::lock_guard<std::mutex> locker(mtx_);
     fd_ = -1;
-    isRun = false;
+    isRun_ = false;
     memset(&addr_, 0, sizeof addr_);
 }
 
 ssize_t HttpWork::readFd(int *Errno) {
-    ssize_t len;
+    assert(fd_ >= 0);
+    ssize_t len = 0;
     do {
-        len = readBuf_.readFd(fd_, Errno);
-        Log::DEBUG("read len: %d", len);
-        if (len <= 0) {
+        auto t_len = readBuf_.readFd(fd_, Errno);
+        // 返回0代表此次读取数据为0
+        Log::DEBUG("client %d read len: %d", fd_, len);
+        if (t_len <= 0) {
             break;
         }
+        len += t_len;
     } while(et_);
+    // len是此次总计读取的数据
     return len;
 }
 
 ssize_t HttpWork::writeFd(int *Errno) {
+    assert(fd_ >= 0);
     // 有两块数据要写: buf, 文件
     iv[0].iov_base = writeBuf_.getReadPtr();
     iv[0].iov_len = writeBuf_.getContentLen();
@@ -144,21 +151,25 @@ bool HttpWork::processHttp() {
 }
 
 void HttpWork::closeConn() {
+    std::lock_guard<std::mutex> locker(mtx_);
     if (fd_ >= 0) {
         close(fd_);
         fd_ = -1;
     }
-    isRun = false;
+    isRun_ = false;
 }
 
 bool HttpWork::getIsRun() {
-    return isRun;
+    std::lock_guard<std::mutex> locker(mtx_);
+    return isRun_;
 }
 
 int HttpWork::getFd() {
+    std::lock_guard<std::mutex> locker(mtx_);
     return fd_;
 }
 
 bool HttpWork::isKeepAlive() {
+    std::lock_guard<std::mutex> locker(mtx_);
     return request_.keepAlive();
 }

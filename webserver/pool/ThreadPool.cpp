@@ -5,54 +5,54 @@
 
 #include "ThreadPool.h"
 
-ThreadPool::ThreadPool(int max_thread_cnt) {
-    MAX_THREAD_CNT = max_thread_cnt;
-    isRun = true;
+ThreadPool::ThreadPool(int max_thread_cnt): pool_(std::make_shared<Pool>()) {
     assert(max_thread_cnt > 0);
-    thread_vec.reserve(max_thread_cnt);
     for (int i = 0; i < max_thread_cnt; ++ i) {
         printf("init thread %d\n", i);
-        thread_vec[i] = std::thread([this, i]{
-            std::unique_lock<std::mutex> locker(mtx_);
+        std::thread([pool = pool_, i]{
+            std::unique_lock<std::mutex> locker(pool->mtx_);
             while(true) {
-                if (!taskQueue_.empty()) {
+                if (!pool->taskQueue_.empty()) {
                     Log::INFO("thread pool: thread %d process task", i);
                     // 有任务，开始干活
-                    auto task = taskQueue_.front();
-                    taskQueue_.pop();
+                    // 这个地方使用move，提高效率
+                    auto task = std::move(pool->taskQueue_.front());
+                    pool->taskQueue_.pop();
                     locker.unlock();
                     task(); // 处理任务
                     locker.lock();
-                } else if (!isRun) {
+                } else if (!pool->isRun) {
                     break;
                 } else {
-                    cv.wait(locker);
+                    pool->cv.wait(locker);
                 }
             }
-        });
+        }).detach();
     }
 }
 
 ThreadPool::~ThreadPool() {
+    if (static_cast<bool>(pool_))
     {
-        std::lock_guard<std::mutex> locker(mtx_);
-        isRun = false;
-        cv.notify_all(); // 唤醒所有线程
-    }
-    for (int i = 0; i < MAX_THREAD_CNT; ++ i) {
-        thread_vec[i].join();
+        {
+            std::lock_guard<std::mutex> locker(pool_->mtx_);
+            pool_->isRun = false;
+        }
+        pool_->cv.notify_all();
     }
 }
 
 void ThreadPool::resetTaskQueue() {
     std::queue<std::function<void()>> q;
-    swap(q, taskQueue_);
+    swap(q, pool_->taskQueue_);
 }
 
 bool ThreadPool::addTask(std::function<void()> &&f) {
-    std::lock_guard<std::mutex> locker(mtx_);
+    {
+        std::lock_guard<std::mutex> locker(pool_->mtx_);
+        pool_->taskQueue_.emplace(std::forward<std::function<void()>>(f));
+    }
     Log::INFO("thead pool: %s", "add task");
-    taskQueue_.emplace(std::forward<std::function<void()>>(f));
-    cv.notify_one();
-    return false;
+    pool_->cv.notify_one();
+    return true;
 }

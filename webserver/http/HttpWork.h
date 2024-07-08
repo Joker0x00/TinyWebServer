@@ -11,16 +11,20 @@
 #include "ParseHttpRequest.h"
 #include "HttpParams.h"
 #include "../urls/Router.h"
+#include <mutex>
+
 // 每个工作线程操纵的类接口，负责读写数据，处理Http请求，每个用户持有一个类
 class HttpWork {
 private:
     Buffer writeBuf_;
     Buffer readBuf_;
     int fd_;
-    bool isRun;
+    bool isRun_;
     struct sockaddr_in addr_{};
     iovec iv[2]{};
-    int io_cnt = 2;
+    int io_cnt = 1;
+
+    std::mutex mtx_;
 
     ParseHttpRequest request_;
 public:

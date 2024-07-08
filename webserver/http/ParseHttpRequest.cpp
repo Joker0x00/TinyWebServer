@@ -72,7 +72,7 @@ bool ParseHttpRequest::parse(Buffer &buf) {
         }
         switch (state_) {
             case PARSE_LINE:
-                printf("line : %s\n", line.c_str());
+//                printf("line : %s\n", line.c_str());
                 if (!parseRequestLine(line)) {
                     return false;
                 }

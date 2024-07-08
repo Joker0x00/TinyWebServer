@@ -34,6 +34,7 @@ private:
     std::mutex mtx_;
     Buffer buf_;
     bool isRun;
+    unsigned long long logCnt;
 
     static const size_t MAX_FILENAME_LEN = 50; // 最大文件名限制
 public:
@@ -98,17 +99,17 @@ void Log::INFO(const char *format, Args... args) {
 
 template<class... Args>
 void Log::WARN(const char *format, Args... args) {
-    addLog(LogLevel::value::INFO, format, args...);
+    addLog(LogLevel::value::WARN, format, args...);
 }
 
 template<class... Args>
 void Log::ERROR(const char *format, Args... args) {
-    addLog(LogLevel::value::INFO, format, args...);
+    addLog(LogLevel::value::ERROR, format, args...);
 }
 
 template<class... Args>
 void Log::FATAL(const char *format, Args... args) {
-    addLog(LogLevel::value::INFO, format, args...);
+    addLog(LogLevel::value::FATAL, format, args...);
 }
 
 #endif //TINYWEBSERVER_LOG_H

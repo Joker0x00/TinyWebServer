@@ -27,6 +27,7 @@ Log::Log() {
     isRun = true;
     fp_ = nullptr;
     target_ = LOG_TARGET_CONSOLE;
+    logCnt = 0;
 }
 
 Log* Log::getInstance() {
@@ -100,8 +101,12 @@ void Log::appendEntry(const std::string &entry) {
 }
 
 void Log::writeFile(const std::string &data) {
+    ++ logCnt;
     fprintf(fp_,"%s", data.c_str());
-    fflush(fp_);
+    if (logCnt >= 100) {
+        fflush(fp_);
+        logCnt = 0;
+    }
 }
 
 

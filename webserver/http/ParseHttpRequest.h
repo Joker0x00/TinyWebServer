@@ -15,15 +15,15 @@
 #include "HttpMethod.h"
 #include "HttpParams.h"
 
-enum Status {
-    PARSE_LINE,
-    PARSE_HEADERS,
-    PARSE_BODY,
-    FINISH
-};
 class ParseHttpRequest {
 public:
-
+    // 当前的处理状态
+    enum Status {
+        PARSE_LINE,
+        PARSE_HEADERS,
+        PARSE_BODY,
+        FINISH
+    };
 private:
     std::string method_; // 方法
     std::string url_; // 请求url

@@ -19,15 +19,16 @@ private:
     Buffer writeBuf_;
     Buffer readBuf_;
     int fd_;
-    bool isRun_;
-    struct sockaddr_in addr_{};
+//    bool isRun_;
+    struct sockaddr_in addr_;
     iovec iv[2]{};
     int io_cnt = 1;
 
-    std::mutex mtx_;
+//    std::mutex mtx_;
 
-    ParseHttpRequest request_;
+
 public:
+    ParseHttpRequest request_;
     static std::string srcDir_;
     static bool et_;
 public:
@@ -39,7 +40,7 @@ public:
     bool processHttp();
     size_t getWriteLen();
     void closeConn();
-    bool getIsRun();
+//    bool getIsRun();
     int getFd();
     bool isKeepAlive();
 };

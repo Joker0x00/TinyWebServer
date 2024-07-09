@@ -12,17 +12,13 @@ bool ParseHttpRequest::parseRequestLine(const std::string &request_line) {
         if (matches.size() == 4) {
             method_ = matches[1];
             url_ = matches[2];
-            if (!parse_url(&parsedUrl_, url_))
-                return false;
             version_ = matches[3];
             state_ = PARSE_HEADERS; // 改变当前状态
-        } else {
-            return false;
+            return true;
         }
-    } else {
-        return false;
     }
-    return true;
+    Log::ERROR("Parse Request Error");
+    return false;
 }
 
 bool ParseHttpRequest::parseRequestHeader(const std::string &header_line) {
@@ -48,7 +44,6 @@ bool ParseHttpRequest::parseRequestBody(const std::string &body) {
 ParseHttpRequest::ParseHttpRequest() {
     state_ = PARSE_LINE;
     method_ = url_ = version_ = data_ = "";
-    headers_.clear();
 }
 
 ParseHttpRequest::~ParseHttpRequest() {
@@ -56,6 +51,9 @@ ParseHttpRequest::~ParseHttpRequest() {
 }
 
 bool ParseHttpRequest::parse(Buffer &buf) {
+    if (buf.getContentLen() <= 0) {
+        return false;
+    }
     // 执行状态机，解析HTTP请求
     while(state_ != FINISH) {
         std::string line;
@@ -66,16 +64,17 @@ bool ParseHttpRequest::parse(Buffer &buf) {
                 return false;
             line_len = line_end - buf.getReadPtr();
             line = std::string(buf.getReadPtr(), line_len);
+            // 移动读指针到"\r\n"的下一个位置
             buf.addReadIdxUntil(line_end + 2);
         } else {
             line = buf.getStringAndReset();
         }
         switch (state_) {
             case PARSE_LINE:
-//                printf("line : %s\n", line.c_str());
                 if (!parseRequestLine(line)) {
                     return false;
                 }
+                parse_url(&parsedUrl_, url_);
                 break;
             case PARSE_HEADERS:
                 if (line_len == 0) {
@@ -135,12 +134,10 @@ std::unordered_map<std::string, std::string> &ParseHttpRequest::getHeaders() {
 std::string &ParseHttpRequest::getBody() {
     return data_;
 }
-
+// 返回当前http请求是否keep alive
 bool ParseHttpRequest::keepAlive() {
     if (headers_.count("Connection")) {
-        if (headers_["Connection"] ==  "keep-alive") {
-            return true;
-        }
+        return headers_["Connection"] ==  "keep-alive" && version_ == "1.1";
     }
     return false;
 }

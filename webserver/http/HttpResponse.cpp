@@ -34,8 +34,6 @@ void HttpResponse::addCors(Buffer &buf) {
     buf.append("Access-Control-Allow-Headers:Content-Type, Connection, Content-Length, Keep-Alive, \r\n");
     buf.append("Access-Control-Max-Age:3600\r\n");
     buf.append("Cache-Control:no-cache, no-store, must-revalidate\r\n");
-
-
 }
 
 void HttpResponse::addBody(const std::string &data, Buffer &buf) {

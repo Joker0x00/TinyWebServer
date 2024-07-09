@@ -59,6 +59,9 @@ namespace  util {
             delete[] str_out;
             str_out = nullptr;
         }
+        static void formatPrintStr(std::string &res, const char *str) {
+            res = std::string(str);
+        }
         static const char* findCRLF(const char* buffer, const char* buffer_end) {
             const char* target = "\r\n";
 //            std::cout << std::string(buffer, buffer_end) << std::endl;

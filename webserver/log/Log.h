@@ -72,8 +72,9 @@ private:
 template <class ...Args>
 void Log::addLog(LogLevel::value type, const char *format, Args... args) {
     Log *l = Log::getInstance();
-    if (type < l->logLevel_) return; // 过滤日志
+    if (type < l->logLevel_ || l->target_ == LOG_TARGET_NONE) return; // 过滤日志
     std::string message;
+
     util::String::formatPrintStr(message, format, args...);
 
     // 向buf_中添加数据，如果多线程访问需要确保只有一个线程访问buf_

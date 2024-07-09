@@ -12,7 +12,6 @@
 class Login: public Base{
 public:
     std::string GET(HttpParams &params) override {
-        Log::INFO("%s", "/login, GET");
         return Response::getResponse(200, "success");
     }
 

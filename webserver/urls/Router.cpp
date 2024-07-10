@@ -9,10 +9,10 @@ std::string Router::process(HttpParams &params) {
     auto processClass = urlsToFunc[params.url_];
     if (processClass == nullptr) {
         // 未找到处理该url的类
-        Log::WARN("%s Not Found", params.url_.c_str());
+        LOG_WARN("%s Not Found", params.url_.c_str());
         return Response::getResponse(404, "Not Found");
     }
-    Log::INFO("%s %s", params.url_.c_str(), HttpMethod::toStr(params.method_).c_str());
+    LOG_INFO("%s %s", params.url_.c_str(), HttpMethod::toStr(params.method_).c_str());
     switch (params.method_) {
         case HttpMethod::GET:
             return processClass->GET(params);

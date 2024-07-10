@@ -56,7 +56,7 @@ bool Server::startListen() {
 
     listenFd_ = socket(PF_INET, SOCK_STREAM, 0);
     if (listenFd_ < 0) {
-        Log::FATAL("%s", "create socket failed");
+        LOG_FATAL("%s", "create socket failed");
         return false;
     }
     setNonBlocking(listenFd_);
@@ -64,26 +64,26 @@ bool Server::startListen() {
     int optVal = 1;
     res = setsockopt(listenFd_, SOL_SOCKET, SO_REUSEADDR, &optVal, sizeof(int));
     if(res == -1) {
-        Log::FATAL("%s", "set socket setsockopt error !");
+        LOG_FATAL("%s", "set socket setsockopt error !");
         close(listenFd_);
         return false;
     }
 
     res = bind(listenFd_, (struct sockaddr*)&address, sizeof address);
     if (res == -1) {
-        Log::FATAL("%s", "bind socket failed");
+        LOG_FATAL("%s", "bind socket failed");
         return false;
     }
 
     res = listen(listenFd_, 8);
     if (res < 0) {
-        Log::FATAL("%s %d", "listen failed", res);
+        LOG_FATAL("%s %d", "listen failed", res);
         return false;
     }
 
     epoll_->addFd(listenFd_, EPOLLIN|listenEvents_);
 
-    Log::INFO("listening on %s:%d", ip_, port_);
+    LOG_INFO("listening on %s:%d", ip_, port_);
     return true;
 }
 
@@ -128,18 +128,18 @@ void Server::testRun(){
 
 void Server::run() {
     if (!isRun_) {
-        Log::ERROR("%s", "Server start failed");
+        LOG_ERROR("%s", "Server start failed");
         return;
     }
     int timeout = -1;
-    Log::INFO("%s", "Server start running");
+    LOG_INFO("%s", "Server start running");
     long long rCnt = 0;
     long long wCnt = 0;
     while(isRun_) {
         if (timeoutMs_ > 0) {
             // 清理过期时间
             timeout = timer_->getNextTick();
-            Log::INFO("(main): timeout: %d", timeout);
+            LOG_INFO("(main): timeout: %d", timeout);
         }
         // 等待直到下一个定时事件超时，如果timeout为-1代表队列中已经没有定时任务，阻塞等待
         int cnt = epoll_->wait(timeout);
@@ -148,29 +148,29 @@ void Server::run() {
             int fd = epoll_->getEventFd(i);
             uint32_t events = epoll_->getEvents(i);
             if (fd == listenFd_) {
-                Log::INFO("(main): listen event: fd(%d)", fd);
+                LOG_INFO("(main): listen event: fd(%d)", fd);
                 // 处理服务器连接请求
                 dealListen();
             } else if (events & (EPOLLRDHUP & EPOLLERR & EPOLLHUP)) {
 //                assert(users_[fd].getIsRun());
-                Log::INFO("(main): close event: fd(%d)", fd);
+                LOG_INFO("(main): close event: fd(%d)", fd);
                 closeConn(users_[fd]); // 关闭连接
             } else if (events & EPOLLIN) {
                 printf("read %lld request\n", ++ rCnt);
 //                printf("fd: %d, isRun: %d\n", fd, users_[fd].getIsRun());
 //                fflush(stdout);
 //                assert(users_[fd].getIsRun());
-                Log::INFO("(main): read event: fd(%d)", fd);
+                LOG_INFO("(main): read event: fd(%d)", fd);
                 dealRead(users_[fd]);
                 fflush(stdout);
             } else if (events & EPOLLOUT) {
                 printf("write %lld request\n", ++ wCnt);
                 fflush(stdout);
 //                assert(users_[fd].getIsRun());
-                Log::INFO("(main): write event: fd(%d)", fd);
+                LOG_INFO("(main): write event: fd(%d)", fd);
                 dealWrite(users_[fd]);
             } else {
-                Log::ERROR("(main): %s", "unexpected event");
+                LOG_ERROR("(main): %s", "unexpected event");
             }
         }
     }
@@ -179,7 +179,7 @@ void Server::run() {
 void Server::closeConn(HttpWork &client) {
 //    if (!client.getIsRun())
 //        return;
-    Log::INFO("(main): client %d is closing", client.getFd());
+    LOG_INFO("(main): client %d is closing", client.getFd());
 //    epoll_->delFd(client.getFd());
     userCnt --;
     client.closeConn();
@@ -194,7 +194,7 @@ void Server::dealListen() {
             return;
         } else if (userCnt >= MAXFD_) {
             sendError(fd, "Server busy");
-            Log::WARN("%s", "server is full");
+            LOG_WARN("%s", "server is full");
             return;
         }
         printf("client %d\n", fd);
@@ -216,7 +216,7 @@ void Server::addClient(int fd, sockaddr_in &addr) {
         // 添加定时事件u
         timer_->push(fd, timeoutMs_, [this, &client] { closeConn(client); }); // 这里报错了，原因是closeConn的client参数应为指针
     }
-    Log::INFO("(main): user[%d] in, ip: %s, port: %d", fd, inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
+    LOG_INFO("(main): user[%d] in, ip: %s, port: %d", fd, inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
 }
 
 void Server::dealWrite(HttpWork &client) {
@@ -226,7 +226,7 @@ void Server::dealWrite(HttpWork &client) {
 }
 
 void Server::dealRead(HttpWork &client) {
-    Log::INFO("(main): dealRead client: %d", client.getFd());
+    LOG_INFO("(main): dealRead client: %d", client.getFd());
 //    assert(client.getIsRun());
     extendTime(client.getFd());
     threadPool_->addTask([this, &client] { readCb(client); });
@@ -236,7 +236,7 @@ void Server::sendError(int fd, const char *msg) {
     assert(fd >= 0);
     auto len = write(fd, msg, sizeof msg);
     if (len <= 0) {
-        Log::WARN("(main): send error to client %d error", fd);
+        LOG_WARN("(main): send error to client %d error", fd);
     }
     close(fd);
 }
@@ -254,25 +254,25 @@ void Server::readCb(HttpWork &client) {
     printf("read client\n");
     fflush(stdout);
     auto len = client.readFd(&Errno);
-    Log::DEBUG("(thread): client %d read %d", client.getFd(), len);
+    LOG_DEBUG("(thread): client %d read %d", client.getFd(), len);
     printf("read client finish\n");
     fflush(stdout);
     if (len <= 0 && !(Errno == EAGAIN || Errno == 0)) {
         // 出现了其他错误，关闭连接
-        Log::ERROR("(thread):read error: %d, client %d is closing", Errno, client.getFd());
+        LOG_ERROR("(thread):read error: %d, client %d is closing", Errno, client.getFd());
         closeConn(client);
         return;
     }
-    Log::INFO("(thread): read request from user %d", client.getFd());
+    LOG_INFO("(thread): read request from user %d", client.getFd());
     if (client.processHttp()) {
         // 成功处理了http读请求，response已生成，等待写出
         epoll_->modFd(client.getFd(), EPOLLOUT | httpConnEvents_);
-        Log::INFO("(thread): process request from user %d", client.getFd());
+        LOG_INFO("(thread): process request from user %d", client.getFd());
     } else {
         // http请求未处理，读缓冲为空，重新等待请求
 //        epoll_->modFd(client.getFd(), EPOLLIN | httpConnEvents_);
         epoll_->delFd(client.getFd());
-        Log::ERROR("(thread): HTTP process error, client: %d", client.getFd());
+        LOG_ERROR("(thread): HTTP process error, client: %d", client.getFd());
         closeConn(client);
     }
 }
@@ -282,7 +282,7 @@ void Server::writeCb(HttpWork &client) {
     int Errno = 0;
     auto len = client.writeFd(&Errno);
     if (client.getWriteLen() == 0) {
-        Log::INFO("(thread): write successfully from user %d", client.getFd());
+        LOG_INFO("(thread): write successfully from user %d", client.getFd());
         // 传输成功
         if (client.isKeepAlive()) {
             epoll_->modFd(client.getFd(), EPOLLIN | httpConnEvents_);
@@ -293,7 +293,7 @@ void Server::writeCb(HttpWork &client) {
         epoll_->modFd(client.getFd(), EPOLLOUT | httpConnEvents_);
         return;
     }
-    Log::INFO("(thread): client %d is closing, Connection: %s", client.getFd(), client.request_.getHeaders()["Connection"].c_str());
+    LOG_INFO("(thread): client %d is closing, Connection: %s", client.getFd(), client.request_.getHeaders()["Connection"].c_str());
     closeConn(client);
 }
 

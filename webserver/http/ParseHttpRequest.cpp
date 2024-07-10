@@ -17,7 +17,7 @@ bool ParseHttpRequest::parseRequestLine(const std::string &request_line) {
             return true;
         }
     }
-    Log::ERROR("Parse Request Error");
+    LOG_ERROR("Parse Request Error");
     return false;
 }
 

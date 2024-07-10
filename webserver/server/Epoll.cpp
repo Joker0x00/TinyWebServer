@@ -14,7 +14,7 @@ Epoll::~Epoll() {
     events.clear();
 }
 
-bool Epoll::delFd(int fd) {
+bool Epoll::delFd(int fd) const {
     if (fd < 0) return false;
     epoll_ctl(epollFd, fd, EPOLL_CTL_DEL, nullptr);
     return true;

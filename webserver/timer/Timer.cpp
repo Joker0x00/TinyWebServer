@@ -71,7 +71,7 @@ void Timer::push(int id, int timeout, const TimerCallback &cb) {
         up(idx);
         down(idx);
     } else {
-        Log::INFO("增加计时时间 id: %d timeout: %d", id, timeout);
+        LOG_INFO("增加计时时间 id: %d timeout: %d", id, timeout);
         heap_.push_back({id, MS(timeout) + Clock::now(), cb});
         ++ si_;
         ref_[id] = si_;
@@ -110,7 +110,7 @@ void Timer::tick() {
         auto &node = top();
         if (std::chrono::duration_cast<MS>(node.expires_ - Clock::now()).count() > 0)
             break;
-        Log::INFO("timer %d is expired", node.id_);
+        LOG_INFO("timer %d is expired", node.id_);
         node.cb_();
         pop();
     }

@@ -13,7 +13,7 @@ ThreadPool::ThreadPool(int max_thread_cnt): pool_(std::make_shared<Pool>()) {
             std::unique_lock<std::mutex> locker(pool->mtx_);
             while(true) {
                 if (!pool->taskQueue_.empty()) {
-                    Log::INFO("thread pool: thread %d process task", i);
+                    LOG_INFO("thread pool: thread %d process task", i);
                     // 有任务，开始干活
                     // 这个地方使用move，提高效率
                     auto task = std::move(pool->taskQueue_.front());
@@ -52,7 +52,7 @@ bool ThreadPool::addTask(std::function<void()> &&f) {
         std::lock_guard<std::mutex> locker(pool_->mtx_);
         pool_->taskQueue_.emplace(std::forward<std::function<void()>>(f));
     }
-    Log::INFO("thead pool: %s", "add task");
+    LOG_INFO("thead pool: %s", "add task");
     pool_->cv.notify_one();
     return true;
 }

@@ -5,18 +5,20 @@
 #include "Server.h"
 
 Server::Server(const char *ip, int port, int trigMod, int timeout, LogTarget target, LogLevel::value logLevel, int max_thread_cnt,
-               int max_timer_cnt, int max_fd, int max_epoll_events, const std::string &srcDir):ip_(ip), port_(port),
+               int max_timer_cnt, int max_fd, int max_epoll_events):ip_(ip), port_(port),
                trigMod_(trigMod), timeoutMs_(timeout), MAXFD_(max_fd), userCnt(0),
                threadPool_(new ThreadPool(max_thread_cnt)), timer_(new Timer(max_timer_cnt)),
                epoll_(new Epoll(max_epoll_events)) {
     isRun_ = false;
+    srcDir_ = getcwd(nullptr, 256);
 //    if (srcDir == "")
 //        srcDir = std::string(getcwd(nullptr, 0));
     auto l = Log::getInstance();
 //     初始化日志系统
-    l->init(target, (srcDir + "/log").c_str(), ".txt", logLevel);
-    HttpWork::srcDir_ = srcDir + "/html";
-
+    printf("%s\n", (srcDir_ + "/log").c_str());
+    l->init(target, (srcDir_ + "/log").c_str(), ".txt", logLevel);
+    HttpWork::srcDir_ = srcDir_ + "/html";
+    printf("%s\n", HttpWork::srcDir_.c_str());
 //     初始化监听事件
     initTrigMode();
 //     启动listenFd
@@ -95,37 +97,6 @@ int Server::setNonBlocking(int fd) {
     return old;
 }
 
-void Server::testRun(){
-    listenFd_ = socket(PF_INET, SOCK_STREAM, 0);
-    struct linger tmp = {1, 0};
-    setsockopt(listenFd_, SOL_SOCKET, SO_LINGER, &tmp, sizeof tmp);
-    int ret = 0;
-
-    struct sockaddr_in address;
-    memset(&address, 0, sizeof address);
-    address.sin_family = AF_INET;
-    address.sin_port = htons(port_);
-    inet_pton(AF_INET, ip_, &address.sin_addr);
-
-    ret = bind(listenFd_, (struct sockaddr*)&address, sizeof address);
-    assert(ret >= 0);
-    ret = listen(listenFd_, 5);
-    assert(ret >= 0);
-
-    int timeout = -1;
-    auto efd = epoll_create(5);
-    epoll_event events[5];
-    epoll_event ev;
-    ev.events = EPOLLIN|EPOLLET|EPOLLRDHUP;
-    ev.data.fd = listenFd_;
-    epoll_ctl(efd, EPOLL_CTL_ADD, listenFd_, &ev);
-    int cnt = epoll_wait(efd, events, 5, -1);
-    if ((cnt < 0) && (errno != EINTR)) {
-        printf("epoll failed\n");
-    }
-    fflush(stdout);
-}
-
 void Server::run() {
     if (!isRun_) {
         LOG_ERROR("%s", "Server start failed");
@@ -133,8 +104,6 @@ void Server::run() {
     }
     int timeout = -1;
     LOG_INFO("%s", "Server start running");
-    long long rCnt = 0;
-    long long wCnt = 0;
     while(isRun_) {
         if (timeoutMs_ > 0) {
             // 清理过期时间
@@ -152,21 +121,12 @@ void Server::run() {
                 // 处理服务器连接请求
                 dealListen();
             } else if (events & (EPOLLRDHUP & EPOLLERR & EPOLLHUP)) {
-//                assert(users_[fd].getIsRun());
                 LOG_INFO("(main): close event: fd(%d)", fd);
                 closeConn(users_[fd]); // 关闭连接
             } else if (events & EPOLLIN) {
-                printf("read %lld request\n", ++ rCnt);
-//                printf("fd: %d, isRun: %d\n", fd, users_[fd].getIsRun());
-//                fflush(stdout);
-//                assert(users_[fd].getIsRun());
                 LOG_INFO("(main): read event: fd(%d)", fd);
                 dealRead(users_[fd]);
-                fflush(stdout);
             } else if (events & EPOLLOUT) {
-                printf("write %lld request\n", ++ wCnt);
-                fflush(stdout);
-//                assert(users_[fd].getIsRun());
                 LOG_INFO("(main): write event: fd(%d)", fd);
                 dealWrite(users_[fd]);
             } else {

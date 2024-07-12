@@ -20,26 +20,27 @@
 
 class Server {
 private:
-
+    const char *ip_;
+    int port_;
+    int trigMod_;
+    int timeoutMs_;
+    int MAXFD_;
+    int userCnt;
     std::unique_ptr<ThreadPool> threadPool_;
     std::unique_ptr<Timer> timer_;
     std::unique_ptr<Epoll> epoll_;
+
     std::unordered_map<int, HttpWork> users_; // 负责处理HTTP请求
-
-    uint32_t httpConnEvents_;
-    uint32_t listenEvents_;
-
-    int timeoutMs_;
-    int port_;
-    const char *ip_;
-    int trigMod_;
-    int listenFd_;
-    int MAXFD_;
+    uint32_t httpConnEvents_{};
+    uint32_t listenEvents_{};
+    int listenFd_{};
     bool isRun_;
-    int userCnt;
+    std::string log_dir_;
+    std::string srcDir_;
+
 public:
     // 提供服务器运行参数
-    Server(const char* ip, int port, int trigMod, int timeout, LogTarget target, LogLevel::value logLevel, int max_thread_cnt, int max_timer_cnt, int max_fd, int max_epoll_events, const std::string &srcDir="");
+    Server(const char* ip, int port, int trigMod, int timeout, LogTarget target, LogLevel::value logLevel, int max_thread_cnt, int max_timer_cnt, int max_fd, int max_epoll_events);
     ~Server();
     void initTrigMode();
     bool startListen();

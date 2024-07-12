@@ -78,7 +78,7 @@ ssize_t HttpWork::writeFd(int *Errno) {
             // 此时第一个iovec没有写完
             // 我们将更新iovec的base和buffer中的指针位置
             auto iv_len1 = writeBuf_.getContentLen(); // 获取待写入数据的长度
-            if (iv_len1 >= len) { // buf中全部写完
+            if (iv_len1 >= static_cast<size_t>(len)) { // buf中全部写完
                 // iv1已经全部写完，后续不再处理s
                 iv[0].iov_base = nullptr;
                 iv[0].iov_len = 0;

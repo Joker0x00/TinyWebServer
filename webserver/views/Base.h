@@ -9,10 +9,10 @@
 
 class Base {
 public:
-    virtual std::string GET(HttpParams &params) = 0;
-    virtual std::string POST(HttpParams &params) = 0;
-    virtual std::string PUT(HttpParams &params) = 0;
-    virtual std::string DELETE(HttpParams &params) = 0;
+    virtual std::string GET(HttpParams &params) { return ""; }
+    virtual std::string POST(HttpParams &params) { return ""; }
+    virtual std::string PUT(HttpParams &params) { return ""; }
+    virtual std::string DELETE(HttpParams &params) { return ""; }
     virtual std::string OPTIONS(HttpParams &params) {
         return "";
     }

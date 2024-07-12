@@ -33,6 +33,8 @@ public:
 
     char* getReadPtr();
 
+    const char *getConstReadPtr();
+
     char* getWritePtr();
 
 //    char* getEndPtr();

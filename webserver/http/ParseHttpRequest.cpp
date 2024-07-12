@@ -3,8 +3,13 @@
 //
 
 #include "ParseHttpRequest.h"
-
-
+// 初始化request，重置内部参数
+void ParseHttpRequest::init() {
+    state_ = PARSE_LINE;
+    method_ = url_ = version_ = data_ = "";
+    headers_.clear();
+}
+// 解析请求行
 bool ParseHttpRequest::parseRequestLine(const std::string &request_line) {
     std::regex requestLinePattern("^([^ ]*) ([^ ]*) HTTP/([^ ]*)$");
     std::smatch matches;
@@ -20,17 +25,17 @@ bool ParseHttpRequest::parseRequestLine(const std::string &request_line) {
     LOG_ERROR("Parse Request Error");
     return false;
 }
-
+// 解析请求头
 bool ParseHttpRequest::parseRequestHeader(const std::string &header_line) {
     std::regex header_pattern(R"(^([^:]+):\s*(.*)$)");
     std::smatch matches;
     if (std::regex_match(header_line, matches, header_pattern)) {
         if (matches.size() == 3) {
-            if (!headers_.count(matches[1])) {
-                headers_[matches[1]] = matches[2];
-            }
+            headers_[matches[1]] = matches[2];
             return true;
         }
+    } else {
+        state_ = PARSE_BODY;
     }
     return false;
 }
@@ -54,13 +59,14 @@ bool ParseHttpRequest::parse(Buffer &buf) {
     if (buf.getContentLen() <= 0) {
         return false;
     }
+    const char CRLF[] = "\r\n";
     // 执行状态机，解析HTTP请求
-    while(state_ != FINISH) {
+    while(buf.getContentLen() && state_ != FINISH) {
         std::string line;
-        size_t line_len;
+        size_t line_len = 0;
         if (state_ != PARSE_BODY) {
-            const char *line_end = util::String::findCRLF(buf.getReadPtr(), buf.getWritePtr());
-            if (line_end == nullptr)
+            const char* line_end = std::search(buf.getReadPtr(), buf.getWritePtr(), CRLF, CRLF + 2);
+            if (line_end == buf.getWritePtr()) // 查找不到回车换行符
                 return false;
             line_len = line_end - buf.getReadPtr();
             line = std::string(buf.getReadPtr(), line_len);
@@ -82,6 +88,9 @@ bool ParseHttpRequest::parse(Buffer &buf) {
                     state_ = PARSE_BODY;
                 } else {
                     parseRequestHeader(line);
+                    if (buf.getContentLen() <= 2) {
+                        state_ = FINISH;
+                    }
                 }
                 break;
             case PARSE_BODY:
@@ -100,7 +109,6 @@ bool ParseHttpRequest::parse_url(ParsedUrl *parsedURL, const std::string &url) {
 
     if (std::regex_match(url, matches, urlPattern)) {
         parsedURL->path = matches[1].str().empty() ? "/" : matches[1].str();
-
         std::string queryString = matches[2].str();
         std::regex queryPattern(R"(([^&=]+)=([^&=]*)(&|$))");
         std::sregex_iterator it(queryString.begin(), queryString.end(), queryPattern);
@@ -142,11 +150,7 @@ bool ParseHttpRequest::keepAlive() {
     return false;
 }
 
-void ParseHttpRequest::init() {
-    state_ = PARSE_LINE;
-    method_ = url_ = version_ = data_ = "";
-    headers_.clear();
-}
+
 
 HttpParams ParseHttpRequest::getParams() {
     return {method_, data_, parsedUrl_.path, parsedUrl_.queryParams};

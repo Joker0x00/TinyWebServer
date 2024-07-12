@@ -34,14 +34,6 @@ public:
         return Response::getResponse(200, "success");
     }
 
-    std::string PUT(HttpParams &params) override {
-
-    }
-
-    std::string DELETE(HttpParams &params) override {
-
-    }
-
     bool isNull() override {
         return false;
     }

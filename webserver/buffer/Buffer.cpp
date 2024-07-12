@@ -145,5 +145,9 @@ bool Buffer::confirmSpace(size_t len) {
     return true;
 }
 
+const char *Buffer::getConstReadPtr() {
+    return &buffer_[0];
+}
+
 
 

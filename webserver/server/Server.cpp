@@ -197,8 +197,6 @@ void Server::dealListen() {
             LOG_WARN("%s", "server is full");
             return;
         }
-        printf("client %d\n", fd);
-        fflush(stdout);
         addClient(fd, address);
     } while(listenEvents_ & EPOLLET);
 }
@@ -251,12 +249,10 @@ void Server::readCb(HttpWork &client) {
 //    Log::DEBUG("client %d isRun %d", client.getFd(), client.getIsRun());
 //    assert(client.getIsRun());
     int Errno = 0;
-    printf("read client\n");
-    fflush(stdout);
+
     auto len = client.readFd(&Errno);
     LOG_DEBUG("(thread): client %d read %d", client.getFd(), len);
-    printf("read client finish\n");
-    fflush(stdout);
+
     if (len <= 0 && !(Errno == EAGAIN || Errno == 0)) {
         // 出现了其他错误，关闭连接
         LOG_ERROR("(thread):read error: %d, client %d is closing", Errno, client.getFd());

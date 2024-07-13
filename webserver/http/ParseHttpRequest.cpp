@@ -6,7 +6,8 @@
 // 初始化request，重置内部参数
 void ParseHttpRequest::init() {
     state_ = PARSE_LINE;
-    method_ = url_ = version_ = data_ = "";
+    params.url_ = version_ = params.body_ = "";
+    params.method_ = HttpMethod::NONE;
     headers_.clear();
 }
 // 解析请求行
@@ -15,8 +16,8 @@ bool ParseHttpRequest::parseRequestLine(const std::string &request_line) {
     std::smatch matches;
     if (std::regex_match(request_line, matches, requestLinePattern)) {
         if (matches.size() == 4) {
-            method_ = matches[1];
-            url_ = matches[2];
+            params.method_ = HttpMethod::toMethod[matches[1]];
+            params.url_ = matches[2];
             version_ = matches[3];
             state_ = PARSE_HEADERS; // 改变当前状态
             return true;
@@ -41,14 +42,13 @@ bool ParseHttpRequest::parseRequestHeader(const std::string &header_line) {
 }
 // 解析带有请求体的请求 POST PUT
 bool ParseHttpRequest::parseRequestBody(const std::string &body) {
-    data_ = body;
+    params.body_ = body;
     state_ = FINISH;
     return true;
 }
 
 ParseHttpRequest::ParseHttpRequest() {
-    state_ = PARSE_LINE;
-    method_ = url_ = version_ = data_ = "";
+    init();
 }
 
 ParseHttpRequest::~ParseHttpRequest() {
@@ -80,7 +80,7 @@ bool ParseHttpRequest::parse(Buffer &buf) {
                 if (!parseRequestLine(line)) {
                     return false;
                 }
-                parse_url(&parsedUrl_, url_);
+//                parse_url();
                 break;
             case PARSE_HEADERS:
                 if (line_len == 0) {
@@ -103,32 +103,31 @@ bool ParseHttpRequest::parse(Buffer &buf) {
     return true;
 }
 
-bool ParseHttpRequest::parse_url(ParsedUrl *parsedURL, const std::string &url) {
-    std::regex urlPattern(R"(^([^\?#]*)(?:\?([^#]*))?)");
-    std::smatch matches;
+//bool ParseHttpRequest::parse_url(const std::string &url) {
+//    std::regex urlPattern(R"(^([^\?#]*)(?:\?([^#]*))?)");
+//    std::smatch matches;
+//
+//    if (std::regex_match(url, matches, urlPattern)) {
+//        std::string queryString = matches[2].str();
+//        std::regex queryPattern(R"(([^&=]+)=([^&=]*)(&|$))");
+//        std::sregex_iterator it(queryString.begin(), queryString.end(), queryPattern);
+//        std::sregex_iterator end;
+//        for (; it != end; ++it) {
+//            params.urlParams_[it->str(1)] = it->str(2);
+//        }
+//    } else {
+//        return false;
+//    }
+//
+//    return true;
+//}
 
-    if (std::regex_match(url, matches, urlPattern)) {
-        parsedURL->path = matches[1].str().empty() ? "/" : matches[1].str();
-        std::string queryString = matches[2].str();
-        std::regex queryPattern(R"(([^&=]+)=([^&=]*)(&|$))");
-        std::sregex_iterator it(queryString.begin(), queryString.end(), queryPattern);
-        std::sregex_iterator end;
-        for (; it != end; ++it) {
-            parsedURL->queryParams[it->str(1)] = it->str(2);
-        }
-    } else {
-        return false;
-    }
+void ParseHttpRequest::parse_url() {
 
-    return true;
 }
 
-std::string &ParseHttpRequest::getMethod() {
-    return method_;
-}
-
-ParsedUrl *ParseHttpRequest::getParsedUrl_() {
-    return &parsedUrl_;
+HttpMethod::MethodType &ParseHttpRequest::getMethod() {
+    return params.method_;
 }
 
 std::string &ParseHttpRequest::getVersion() {
@@ -140,7 +139,7 @@ std::unordered_map<std::string, std::string> &ParseHttpRequest::getHeaders() {
 }
 
 std::string &ParseHttpRequest::getBody() {
-    return data_;
+    return params.body_;
 }
 // 返回当前http请求是否keep alive
 bool ParseHttpRequest::keepAlive() {
@@ -150,9 +149,7 @@ bool ParseHttpRequest::keepAlive() {
     return false;
 }
 
-
-
-HttpParams ParseHttpRequest::getParams() {
-    return {method_, data_, parsedUrl_.path, parsedUrl_.queryParams};
+HttpParams &ParseHttpRequest::getParams() {
+    return params;
 }
 

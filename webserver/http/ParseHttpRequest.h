@@ -10,9 +10,9 @@
 
 #include "../buffer/Buffer.h"
 #include "../utils/Utils.h"
-#include "ParsedUrl.h"
 #include "../log/Log.h"
 #include "HttpMethod.h"
+#include "HttpParams.h"
 #include "HttpParams.h"
 
 class ParseHttpRequest {
@@ -25,13 +25,10 @@ public:
         FINISH
     };
 private:
-    std::string method_; // 方法
-    std::string url_; // 请求url
     std::string version_; // HTTP版本
     std::unordered_map<std::string, std::string> headers_; // 头部字段
-    std::string data_; // 请求体
-    Status state_;
-    ParsedUrl parsedUrl_;
+    Status state_ = PARSE_LINE;
+    HttpParams params;
 public:
 
     ParseHttpRequest();
@@ -39,16 +36,15 @@ public:
     void init();
 
     bool parse(Buffer &buf);
-    static bool parse_url(ParsedUrl *parsedURL, const std::string& url);
+    void parse_url();
     bool parseRequestLine(const std::string &request_line);
     bool parseRequestHeader(const std::string &header_line);
     bool parseRequestBody(const std::string &body);
 
-    HttpParams getParams();
+    HttpParams &getParams();
 
 
-    std::string &getMethod();
-    ParsedUrl *getParsedUrl_();
+    HttpMethod::MethodType &getMethod();
     std::string &getVersion();
     std::unordered_map<std::string, std::string> &getHeaders();
     std::string &getBody();

@@ -23,13 +23,13 @@ public:
     HttpResponse() = default;
     ~HttpResponse() = default;
 
-    static void makeResponse(HttpMethod::MethodType method, int code, std::string& res, bool keepAlive, Buffer &buf);
+    static void makeResponse(HttpMethod::MethodType &method, int code, std::string&& res, bool keepAlive, Buffer &buf);
 
     static void addResponseLine(int code, const std::string &title, Buffer &buf);
 
     static void addHeaders(bool keepAlive, Buffer &buf);
 
-    static void addBody(const std::string &data, Buffer &buf);
+    static void addBody(const std::string &&data, Buffer &buf);
 
     static void addCors(Buffer &buf);
 };

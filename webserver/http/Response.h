@@ -16,7 +16,7 @@ class HttpReturnStatus {
 
 class Response {
 public:
-    static std::string getResponse(int code, const std::string &msg) {
+    static std::string getResponse(int code, const std::string &&msg) {
         Json::CharReaderBuilder ReaderBuilder;
         ReaderBuilder["emitUTF8"] = true;//utf8支持,不加这句,utf8的中文字符会编程\uxxx
         std::unique_ptr<Json::CharReader> charRead(ReaderBuilder.newCharReader());

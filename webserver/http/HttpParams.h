@@ -10,13 +10,18 @@
 #include "HttpMethod.h"
 class HttpParams {
 public:
-    HttpMethod::MethodType method_=HttpMethod::MethodType::NONE;
+    HttpMethod::MethodType method_;
     std::string body_; // 请求体 通常是json格式
-    std::unordered_map<std::string, std::string> urlParams_; // url中的参数
     std::string url_;
+    std::unordered_map<std::string, std::string> urlParams_; // url中的参数
     HttpParams(const std::string& method, std::string body, std::string url,
-               std::unordered_map<std::string, std::string> &urlParams);
+               std::unordered_map<std::string, std::string> &urlParams) : method_(HttpMethod::toMethod[method]),
+               body_(std::move(body)), url_(std::move(url)), urlParams_(urlParams) {
+    }
     ~HttpParams()=default;
+    HttpParams(): method_(HttpMethod::MethodType::NONE) {
+
+    }
 };
 
 

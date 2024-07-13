@@ -36,12 +36,12 @@ void HttpResponse::addCors(Buffer &buf) {
     buf.append("Cache-Control:no-cache, no-store, must-revalidate\r\n");
 }
 
-void HttpResponse::addBody(const std::string &data, Buffer &buf) {
+void HttpResponse::addBody(const std::string &&data, Buffer &buf) {
     buf.append("Content-Length: " + std::to_string(data.length()) + "\r\n\r\n");
     buf.append(data + "\r\n");
 }
 
-void HttpResponse::makeResponse(HttpMethod::MethodType method, int code, std::string &data, bool keepAlive, Buffer &buf) {
+void HttpResponse::makeResponse(HttpMethod::MethodType &method, int code, std::string &&data, bool keepAlive, Buffer &buf) {
     if (method == HttpMethod::OPTIONS) {
         // 浏览器跨域检查
         addResponseLine(204, "No Content", buf);
@@ -51,7 +51,7 @@ void HttpResponse::makeResponse(HttpMethod::MethodType method, int code, std::st
     }
     addHeaders(keepAlive, buf);
     if (!data.empty())
-        addBody(data, buf);
+        addBody(std::forward<std::string>(data), buf);
     else {
         buf.append("Content-Length: 0\r\n\r\n");
     }

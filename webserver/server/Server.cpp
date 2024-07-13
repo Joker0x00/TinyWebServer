@@ -108,7 +108,6 @@ void Server::run() {
         if (timeoutMs_ > 0) {
             // 清理过期时间
             timeout = timer_->getNextTick();
-            LOG_INFO("(main): timeout: %d", timeout);
         }
         // 等待直到下一个定时事件超时，如果timeout为-1代表队列中已经没有定时任务，阻塞等待
         int cnt = epoll_->wait(timeout);
@@ -117,17 +116,14 @@ void Server::run() {
             int fd = epoll_->getEventFd(i);
             uint32_t events = epoll_->getEvents(i);
             if (fd == listenFd_) {
-                LOG_INFO("(main): listen event: fd(%d)", fd);
                 // 处理服务器连接请求
                 dealListen();
             } else if (events & (EPOLLRDHUP & EPOLLERR & EPOLLHUP)) {
-                LOG_INFO("(main): close event: fd(%d)", fd);
+                LOG_WARN("(main): close event: fd(%d)", fd);
                 closeConn(users_[fd]); // 关闭连接
             } else if (events & EPOLLIN) {
-                LOG_INFO("(main): read event: fd(%d)", fd);
                 dealRead(users_[fd]);
             } else if (events & EPOLLOUT) {
-                LOG_INFO("(main): write event: fd(%d)", fd);
                 dealWrite(users_[fd]);
             } else {
                 LOG_ERROR("(main): %s", "unexpected event");
@@ -154,7 +150,7 @@ void Server::dealListen() {
             return;
         } else if (userCnt >= MAXFD_) {
             sendError(fd, "Server busy");
-            LOG_WARN("%s", "server is full");
+            LOG_ERROR("%s", "server is full");
             return;
         }
         addClient(fd, address);
@@ -184,7 +180,7 @@ void Server::dealWrite(HttpWork &client) {
 }
 
 void Server::dealRead(HttpWork &client) {
-    LOG_INFO("(main): dealRead client: %d", client.getFd());
+//    LOG_INFO("(main): dealRead client: %d", client.getFd());
 //    assert(client.getIsRun());
     extendTime(client.getFd());
     threadPool_->addTask([this, &client] { readCb(client); });
@@ -211,7 +207,7 @@ void Server::readCb(HttpWork &client) {
     int Errno = 0;
 
     auto len = client.readFd(&Errno);
-    LOG_DEBUG("(thread): client %d read %d", client.getFd(), len);
+//    LOG_DEBUG("(thread): client %d read %d", client.getFd(), len);
 
     if (len <= 0 && !(Errno == EAGAIN || Errno == 0)) {
         // 出现了其他错误，关闭连接
@@ -219,16 +215,16 @@ void Server::readCb(HttpWork &client) {
         closeConn(client);
         return;
     }
-    LOG_INFO("(thread): read request from user %d", client.getFd());
+//    LOG_INFO("(thread): read request from user %d", client.getFd());
     if (client.processHttp()) {
         // 成功处理了http读请求，response已生成，等待写出
         epoll_->modFd(client.getFd(), EPOLLOUT | httpConnEvents_);
-        LOG_INFO("(thread): process request from user %d", client.getFd());
+//        LOG_INFO("(thread): process request from user %d", client.getFd());
     } else {
         // http请求未处理，读缓冲为空，重新等待请求
 //        epoll_->modFd(client.getFd(), EPOLLIN | httpConnEvents_);
         epoll_->delFd(client.getFd());
-        LOG_ERROR("(thread): HTTP process error, client: %d", client.getFd());
+        LOG_ERROR("(thread): readBuf is none, client: %d", client.getFd());
         closeConn(client);
     }
 }
@@ -238,7 +234,7 @@ void Server::writeCb(HttpWork &client) {
     int Errno = 0;
     auto len = client.writeFd(&Errno);
     if (client.getWriteLen() == 0) {
-        LOG_INFO("(thread): write successfully from user %d", client.getFd());
+//        LOG_INFO("(thread): write successfully from user %d", client.getFd());
         // 传输成功
         if (client.isKeepAlive()) {
             epoll_->modFd(client.getFd(), EPOLLIN | httpConnEvents_);

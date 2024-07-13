@@ -15,7 +15,7 @@ void HttpWork::init(int fd, const sockaddr_in &addr) {
     readBuf_.resetBuffer();
     request_.init();
 //    isRun_ = true;
-    LOG_INFO("client %d init", fd);
+//    LOG_INFO("client %d init", fd);
 }
 
 HttpWork::HttpWork() {
@@ -33,7 +33,7 @@ ssize_t HttpWork::readFd(int *Errno) {
             break;
         }
         len += t_len;
-        LOG_DEBUG("(thread): client %d read len: %d", fd_, len);
+//        LOG_DEBUG("(thread): client %d read len: %d", fd_, len);
     } while(et_);
     // len是此次总计读取的数据
     return len;
@@ -49,7 +49,7 @@ ssize_t HttpWork::writeFd(int *Errno) {
     ssize_t len = 0;
     do {
         len = writev(fd_, iv, io_cnt);
-        LOG_DEBUG("write len: %d", len);
+//        LOG_DEBUG("write len: %d", len);
         if (len <= 0) {
             // 写错误
             *Errno = errno;
@@ -123,16 +123,14 @@ bool HttpWork::processHttp() {
     // 请求成功解析
     if (request_.parse(readBuf_)) {
         // 解析成功，正式进入业务逻辑处理流程
-        LOG_INFO("%s", "parse request successfully");
-        auto params = request_.getParams();
-        auto response = Router::process(params);
-        HttpResponse::makeResponse(params.method_, 200, response, request_.keepAlive(), writeBuf_);
+//        LOG_INFO("%s", "parse request successfully");
+        auto &params = request_.getParams(); //
+        HttpResponse::makeResponse(params.method_, 200, Response::getResponse(200, Router::process(params)), request_.keepAlive(), writeBuf_);
     } else {
-        auto params = request_.getParams();
-        auto response = Response::getResponse(400, "HTTP请求解析失败");
-        HttpResponse::makeResponse(params.method_, 400, response, request_.keepAlive(), writeBuf_);
+        auto &params = request_.getParams(); //
+        HttpResponse::makeResponse(params.method_, 400, Response::getResponse(400, "HTTP请求解析失败"), request_.keepAlive(), writeBuf_);
     }
-    LOG_INFO("making response%s", "");
+//    LOG_INFO("making response%s", "");
 //    response_.makeResponse(writeBuf_);
     // 输出报文11
     iv[0].iov_base = writeBuf_.getReadPtr();
@@ -144,7 +142,7 @@ bool HttpWork::processHttp() {
 //        iv[1].iov_len = response_.getFileLen();
 //        io_cnt = 2;
 //    }
-    LOG_DEBUG("wait for write response%s", "");
+//    LOG_DEBUG("wait for write response%s", "");
     // 返回true表示等待写
     return true;
 }
@@ -159,7 +157,7 @@ void HttpWork::closeConn() {
     // 重复关闭会出错，但不做处理，一个socket会多次处理
     close(fd_);
 //    isRun_ = false;
-    LOG_DEBUG("client %d is closed", fd_);
+//    LOG_DEBUG("client %d is closed", fd_);
 }
 
 //bool HttpWork::getIsRun() {

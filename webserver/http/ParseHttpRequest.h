@@ -7,7 +7,7 @@
 
 #include <unordered_map>
 #include <regex>
-
+#include <unordered_set>
 #include "../buffer/Buffer.h"
 #include "../utils/Utils.h"
 #include "../log/Log.h"
@@ -29,6 +29,8 @@ private:
     std::unordered_map<std::string, std::string> headers_; // 头部字段
     Status state_ = PARSE_LINE;
     HttpParams params;
+    static const std::unordered_set<std::string> DEFAULT_HTML;
+    static const std::unordered_map<std::string, int>DEFAULT_HTML_TAG;
 public:
 
     ParseHttpRequest();

@@ -36,6 +36,8 @@ add_executable(TinyWebServer webserver/main.cpp
         webserver/lib/json/json-forwards.h
         webserver/http/HttpMethod.cpp
         webserver/urls/Router.cpp
+        webserver/views/Index.h
+        webserver/Type.h
 )
 set(CMAKE_CXX_FLAGS -pthread)
 message(STATUS "CMAKE_CXX_FLAGS = ${CMAKE_CXX_FLAGS}")

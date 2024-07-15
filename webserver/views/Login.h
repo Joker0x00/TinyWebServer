@@ -8,30 +8,32 @@
 #include "../http/HttpParams.h"
 #include "../http/HttpResponse.h"
 #include "../lib/json/json.h"
+#include "../urls/Router.h"
+
 // 登录接口
 class Login: public Base{
 public:
-    std::string GET(HttpParams &params) override {
-        return Response::getResponse(200, "success");
+    pis GET(HttpParams &params) override {
+        return {0, Response::getResponse(200, "success")};
     }
 
-    std::string POST(HttpParams &params) override {
+    pis POST(HttpParams &params) override {
         // 此处验证参数
         printf("%s\n", params.body_.c_str());
         Json::Reader reader;
         Json::Value data;
         if (!reader.parse(params.body_, data)) {
-            return Response::getResponse(400, "json parse failed");
+            return {0, Response::getResponse(400, "json parse failed")};
         }
         std::string username = data.get("username", "").asString();
         std::string password = data.get("password", "").asString();
         if (username.empty() || password.empty()) {
-            return Response::getResponse(200, "params is null");
+            return {0, Response::getResponse(200, "params is null")};
         }
         if (!(username == "wy" && password == "123456")) {
-            return Response::getResponse(200, "username or password is error");
+            return {0, Response::getResponse(200, "username or password is error")};
         }
-        return Response::getResponse(200, "success");
+        return {0, Response::getResponse(200, "success")};
     }
 
     bool isNull() override {

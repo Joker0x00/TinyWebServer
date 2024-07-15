@@ -6,16 +6,14 @@
 #define TINYWEBSERVER_BASE_H
 #include "../http/HttpParams.h"
 #include "../http/HttpResponse.h"
-
+#include "../Type.h"
 class Base {
 public:
-    virtual std::string GET(HttpParams &params) { return ""; }
-    virtual std::string POST(HttpParams &params) { return ""; }
-    virtual std::string PUT(HttpParams &params) { return ""; }
-    virtual std::string DELETE(HttpParams &params) { return ""; }
-    virtual std::string OPTIONS(HttpParams &params) {
-        return "";
-    }
+    virtual pis GET(HttpParams &params) { return {0, ""}; }
+    virtual pis POST(HttpParams &params) { return {0, ""}; }
+    virtual pis PUT(HttpParams &params) { return {0, ""}; }
+    virtual pis DELETE(HttpParams &params) { return {0, ""}; }
+    virtual pis OPTIONS(HttpParams &params) { return {0, ""}; }
     virtual bool isNull() {
         return true;
     }

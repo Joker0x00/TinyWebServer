@@ -17,7 +17,8 @@ Server::Server(const char *ip, int port, int trigMod, int timeout, LogTarget tar
 //     初始化日志系统
     printf("%s\n", (srcDir_ + "/log").c_str());
     l->init(target, (srcDir_ + "/log").c_str(), ".txt", logLevel);
-    HttpWork::srcDir_ = srcDir_ + "/html";
+    HttpWork::srcDir_ = srcDir_ + "/resources";
+    Router::resource_path = srcDir_ + "/resources";
     printf("%s\n", HttpWork::srcDir_.c_str());
 //     初始化监听事件
     initTrigMode();
@@ -122,8 +123,10 @@ void Server::run() {
                 LOG_WARN("(main): close event: fd(%d)", fd);
                 closeConn(users_[fd]); // 关闭连接
             } else if (events & EPOLLIN) {
+                LOG_DEBUG("(main): read event: %d", fd);
                 dealRead(users_[fd]);
             } else if (events & EPOLLOUT) {
+                LOG_DEBUG("(main): write event: %d", fd);
                 dealWrite(users_[fd]);
             } else {
                 LOG_ERROR("(main): %s", "unexpected event");
@@ -208,7 +211,6 @@ void Server::readCb(HttpWork &client) {
 
     auto len = client.readFd(&Errno);
 //    LOG_DEBUG("(thread): client %d read %d", client.getFd(), len);
-
     if (len <= 0 && !(Errno == EAGAIN || Errno == 0)) {
         // 出现了其他错误，关闭连接
         LOG_ERROR("(thread):read error: %d, client %d is closing", Errno, client.getFd());
@@ -233,15 +235,18 @@ void Server::writeCb(HttpWork &client) {
 //    assert(client.getIsRun()); // 连接未关闭
     int Errno = 0;
     auto len = client.writeFd(&Errno);
+    LOG_DEBUG("Error: %d", Errno);
     if (client.getWriteLen() == 0) {
-//        LOG_INFO("(thread): write successfully from user %d", client.getFd());
+        LOG_INFO("(thread): write successfully from user %d", client.getFd());
         // 传输成功
         if (client.isKeepAlive()) {
             epoll_->modFd(client.getFd(), EPOLLIN | httpConnEvents_);
+            client.resetBuffer();
             return;
         }
     } else if (len <= 0 && Errno == EAGAIN) {
         // 写缓冲满了，继续传输
+        LOG_WARN("EAGAIN, continue write, client %d", client.getFd());
         epoll_->modFd(client.getFd(), EPOLLOUT | httpConnEvents_);
         return;
     }

@@ -3,6 +3,14 @@
 //
 
 #include "ParseHttpRequest.h"
+
+const std::unordered_set<std::string> ParseHttpRequest::DEFAULT_HTML{
+        "/index", "/register", "/login",
+        "/welcome", "/video", "/picture", };
+
+const std::unordered_map<std::string, int> ParseHttpRequest::DEFAULT_HTML_TAG {
+        {"/register.html", 0}, {"/login.html", 1},  };
+
 // 初始化request，重置内部参数
 void ParseHttpRequest::init() {
     state_ = PARSE_LINE;
@@ -23,7 +31,7 @@ bool ParseHttpRequest::parseRequestLine(const std::string &request_line) {
             return true;
         }
     }
-    LOG_ERROR("Parse Request Error");
+    LOG_ERROR("Parse Request Error: %s", request_line.c_str());
     return false;
 }
 // 解析请求头
@@ -80,7 +88,7 @@ bool ParseHttpRequest::parse(Buffer &buf) {
                 if (!parseRequestLine(line)) {
                     return false;
                 }
-//                parse_url();
+                parse_url();
                 break;
             case PARSE_HEADERS:
                 if (line_len == 0) {
@@ -123,7 +131,17 @@ bool ParseHttpRequest::parse(Buffer &buf) {
 //}
 
 void ParseHttpRequest::parse_url() {
-
+    if(params.url_ == "/") {
+        params.url_ = "/index.html";
+    }
+    else {
+        for(auto &item: DEFAULT_HTML) {
+            if(item == params.url_) {
+                params.url_ += ".html";
+                break;
+            }
+        }
+    }
 }
 
 HttpMethod::MethodType &ParseHttpRequest::getMethod() {

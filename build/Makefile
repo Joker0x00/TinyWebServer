@@ -13,7 +13,7 @@ OBJS = ../webserver/log/*.cpp \
 	   ../webserver/urls/*.cpp
 
 all: $(OBJS)
-	$(CXX) $(CFLAGS) $(OBJS) -o /home/wy/CLionProjects/cpp/TinyWebServer/build/bin/$(TARGET) -pthread
+	$(CXX) $(CFLAGS) $(OBJS) -o /home/wy/CLionProjects/cpp/TinyWebServer/build/bin/$(TARGET) -pthread -lmysqlclient
 
 clean:
 	rm -r /home/wy/CLionProjects/cpp/TinyWebServer/build/bin/$(TARGET)

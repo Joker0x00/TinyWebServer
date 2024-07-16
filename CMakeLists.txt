@@ -38,6 +38,7 @@ add_executable(TinyWebServer webserver/main.cpp
         webserver/urls/Router.cpp
         webserver/views/Index.h
         webserver/Type.h
+        webserver/pool/sqlconnpool.cpp
 )
 set(CMAKE_CXX_FLAGS -pthread)
 message(STATUS "CMAKE_CXX_FLAGS = ${CMAKE_CXX_FLAGS}")

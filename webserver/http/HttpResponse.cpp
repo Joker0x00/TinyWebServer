@@ -109,7 +109,7 @@ void HttpResponse::AddContent_(Buffer& buf) {
 
     /* 将文件映射到内存提高文件的访问速度
         MAP_PRIVATE 建立一个写入时拷贝的私有映射*/
-    LOG_DEBUG("file path %s, size: %d", (srcDir_ + path_).data(), mmFileStat_.st_size);
+//    LOG_DEBUG("file path %s, size: %d", (srcDir_ + path_).data(), mmFileStat_.st_size);
     int* mmRet = (int*)mmap(nullptr, mmFileStat_.st_size, PROT_READ, MAP_PRIVATE, srcFd, 0);
     if(*mmRet == -1) {
         LOG_ERROR("map file failed");

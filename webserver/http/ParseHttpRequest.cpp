@@ -1,58 +1,247 @@
 //
 // Created by wy on 24-7-3.
 //
-
 #include "ParseHttpRequest.h"
+using namespace std;
 
-const std::unordered_set<std::string> ParseHttpRequest::DEFAULT_HTML{
+const unordered_set<string> ParseHttpRequest::DEFAULT_HTML{
         "/index", "/register", "/login",
         "/welcome", "/video", "/picture", };
 
-const std::unordered_map<std::string, int> ParseHttpRequest::DEFAULT_HTML_TAG {
+const unordered_map<string, int> ParseHttpRequest::DEFAULT_HTML_TAG {
         {"/register.html", 0}, {"/login.html", 1},  };
 
-// 初始化request，重置内部参数
 void ParseHttpRequest::init() {
+    method_ = url_ = version_ = body_ = "";
     state_ = PARSE_LINE;
-    params.url_ = version_ = params.body_ = "";
-    params.method_ = HttpMethod::NONE;
     headers_.clear();
+    post_.clear();
 }
-// 解析请求行
-bool ParseHttpRequest::parseRequestLine(const std::string &request_line) {
-    std::regex requestLinePattern("^([^ ]*) ([^ ]*) HTTP/([^ ]*)$");
-    std::smatch matches;
-    if (std::regex_match(request_line, matches, requestLinePattern)) {
-        if (matches.size() == 4) {
-            params.method_ = HttpMethod::toMethod[matches[1]];
-            params.url_ = matches[2];
-            version_ = matches[3];
-            state_ = PARSE_HEADERS; // 改变当前状态
-            return true;
-        }
+
+bool ParseHttpRequest::keepAlive() {
+    if(headers_.count("Connection") == 1) {
+        return headers_.find("Connection")->second == "keep-alive" && version_ == "1.1";
     }
-    LOG_ERROR("Parse Request Error: %s", request_line.c_str());
     return false;
 }
-// 解析请求头
-bool ParseHttpRequest::parseRequestHeader(const std::string &header_line) {
-    std::regex header_pattern(R"(^([^:]+):\s*(.*)$)");
-    std::smatch matches;
-    if (std::regex_match(header_line, matches, header_pattern)) {
-        if (matches.size() == 3) {
-            headers_[matches[1]] = matches[2];
-            return true;
+
+bool ParseHttpRequest::parse(Buffer& buff) {
+    const char CRLF[] = "\r\n";
+    if(buff.getContentLen() <= 0) {
+        return false;
+    }
+    while(buff.getContentLen() && state_ != FINISH) {
+        const char* lineEnd = search(buff.getReadPtr(), buff.getWritePtr(), CRLF, CRLF + 2);
+        std::string line(buff.getConstReadPtr(), lineEnd);
+        switch(state_)
+        {
+            case PARSE_LINE:
+                if(!parseRequestLine(line)) {
+                    return false;
+                }
+                parse_url();
+                break;
+            case PARSE_HEADERS:
+                parseRequestHeader(line);
+                if(buff.getContentLen() <= 2) {
+                    state_ = FINISH;
+                }
+                break;
+            case PARSE_BODY:
+                parseRequestBody(line);
+                break;
+            default:
+                break;
         }
-    } else {
+        if(lineEnd == buff.getWritePtr()) { break; }
+        buff.addReadIdxUntil(lineEnd + 2);
+    }
+    LOG_DEBUG("[%s], [%s], [%s]", method_.c_str(), url_.c_str(), version_.c_str());
+    return true;
+}
+
+void ParseHttpRequest::parse_url() {
+    if(url_ == "/") {
+        url_ = "/index.html";
+    }
+    else {
+        for(auto &item: DEFAULT_HTML) {
+            if(item == url_) {
+                url_ += ".html";
+                break;
+            }
+        }
+    }
+}
+
+bool ParseHttpRequest::parseRequestLine(const string& line) {
+    regex patten("^([^ ]*) ([^ ]*) HTTP/([^ ]*)$");
+    smatch subMatch;
+    if(regex_match(line, subMatch, patten)) {
+        method_ = subMatch[1];
+        url_ = subMatch[2];
+        version_ = subMatch[3];
+        state_ = PARSE_HEADERS;
+        return true;
+    }
+    LOG_ERROR("RequestLine Error");
+    return false;
+}
+
+void ParseHttpRequest::parseRequestHeader(const string& line) {
+    regex patten("^([^:]*): ?(.*)$");
+    smatch subMatch;
+    if(regex_match(line, subMatch, patten)) {
+        headers_[subMatch[1]] = subMatch[2];
+    }
+    else {
         state_ = PARSE_BODY;
     }
-    return false;
 }
-// 解析带有请求体的请求 POST PUT
-bool ParseHttpRequest::parseRequestBody(const std::string &body) {
-    params.body_ = body;
+
+void ParseHttpRequest::parseRequestBody(const string& line) {
+    body_ = line;
+    parsePost();
     state_ = FINISH;
-    return true;
+    LOG_DEBUG("Body:%s, len:%d", line.c_str(), line.size());
+}
+
+int ParseHttpRequest::convertHex(char ch) {
+    if(ch >= 'A' && ch <= 'F') return ch -'A' + 10;
+    if(ch >= 'a' && ch <= 'f') return ch -'a' + 10;
+    return ch;
+}
+
+void ParseHttpRequest::parsePost() {
+    if(method_ == "POST" && headers_["Content-Type"] == "application/x-www-form-urlencoded") {
+        parseFromUrlencoded();
+        if(DEFAULT_HTML_TAG.count(url_)) {
+            int tag = DEFAULT_HTML_TAG.find(url_)->second;
+            LOG_DEBUG("Tag:%d", tag);
+            if(tag == 0 || tag == 1) {
+                bool isLogin = (tag == 1);
+                if(userVerify(post_["username"], post_["password"], isLogin)) {
+                    url_ = "/welcome.html";
+                }
+                else {
+                    url_ = "/error.html";
+                }
+            }
+        }
+    }
+}
+
+void ParseHttpRequest::parseFromUrlencoded() {
+    if(body_.size() == 0) { return; }
+
+    string key, value;
+    int num = 0;
+    int n = body_.size();
+    int i = 0, j = 0;
+
+    for(; i < n; i++) {
+        char ch = body_[i];
+        switch (ch) {
+            case '=':
+                key = body_.substr(j, i - j);
+                j = i + 1;
+                break;
+            case '+':
+                body_[i] = ' ';
+                break;
+            case '%':
+                num = convertHex(body_[i + 1]) * 16 + convertHex(body_[i + 2]);
+                body_[i + 2] = num % 10 + '0';
+                body_[i + 1] = num / 10 + '0';
+                i += 2;
+                break;
+            case '&':
+                value = body_.substr(j, i - j);
+                j = i + 1;
+                post_[key] = value;
+                LOG_DEBUG("%s = %s", key.c_str(), value.c_str());
+                break;
+            default:
+                break;
+        }
+    }
+    assert(j <= i);
+    if(post_.count(key) == 0 && j < i) {
+        value = body_.substr(j, i - j);
+        post_[key] = value;
+    }
+}
+
+bool ParseHttpRequest::userVerify(const string &name, const string &pwd, bool isLogin) {
+    if(name.empty() || pwd.empty()) { return false; }
+    LOG_INFO("Verify name:%s pwd:%s", name.c_str(), pwd.c_str());
+    MYSQL* sql;
+    SqlConnRAII give_me_a_name(&sql,  SqlConnPool::Instance());
+    assert(sql);
+
+    bool flag = false;
+    char order[256] = { 0 };
+
+    MYSQL_RES *res = nullptr;
+
+    if(!isLogin) { flag = true; }
+    /* 查询用户及密码 */
+    snprintf(order, 256, "SELECT username, password FROM user WHERE username='%s' LIMIT 1", name.c_str());
+    LOG_DEBUG("%s", order);
+
+    if(mysql_query(sql, order)) {
+        mysql_free_result(res);
+        return false;
+    }
+    res = mysql_store_result(sql);
+    mysql_num_fields(res);
+    mysql_fetch_fields(res);
+
+    while(MYSQL_ROW row = mysql_fetch_row(res)) {
+        LOG_DEBUG("MYSQL ROW: %s %s", row[0], row[1]);
+        string password(row[1]);
+        /* 注册行为 且 用户名未被使用*/
+        if(isLogin) {
+            if(pwd == password) { flag = true; }
+            else {
+                flag = false;
+                LOG_DEBUG("pwd error!");
+            }
+        }
+        else {
+            flag = false;
+            LOG_DEBUG("user used!");
+        }
+    }
+    mysql_free_result(res);
+
+    /* 注册行为 且 用户名未被使用*/
+    if(!isLogin && flag) {
+        LOG_DEBUG("regirster!");
+        bzero(order, 256);
+        snprintf(order, 256,"INSERT INTO user(username, password) VALUES('%s','%s')", name.c_str(), pwd.c_str());
+        LOG_DEBUG( "%s", order)
+        if(mysql_query(sql, order)) {
+            LOG_DEBUG( "Insert error!");
+            flag = false;
+        }
+        flag = true;
+    }
+    SqlConnPool::Instance()->FreeConn(sql);
+    LOG_DEBUG( "UserVerify success!!");
+    return flag;
+}
+
+
+std::string &ParseHttpRequest::path(){
+    return url_;
+}
+std::string &ParseHttpRequest::method() {
+    return method_;
+}
+
+std::string &ParseHttpRequest::version() {
+    return version_;
 }
 
 ParseHttpRequest::ParseHttpRequest() {
@@ -60,114 +249,5 @@ ParseHttpRequest::ParseHttpRequest() {
 }
 
 ParseHttpRequest::~ParseHttpRequest() {
-    headers_.clear();
-}
 
-bool ParseHttpRequest::parse(Buffer &buf) {
-    if (buf.getContentLen() <= 0) {
-        return false;
-    }
-    const char CRLF[] = "\r\n";
-    // 执行状态机，解析HTTP请求
-    while(buf.getContentLen() && state_ != FINISH) {
-        std::string line;
-        size_t line_len = 0;
-        if (state_ != PARSE_BODY) {
-            const char* line_end = std::search(buf.getReadPtr(), buf.getWritePtr(), CRLF, CRLF + 2);
-            if (line_end == buf.getWritePtr()) // 查找不到回车换行符
-                return false;
-            line_len = line_end - buf.getReadPtr();
-            line = std::string(buf.getReadPtr(), line_len);
-            // 移动读指针到"\r\n"的下一个位置
-            buf.addReadIdxUntil(line_end + 2);
-        } else {
-            line = buf.getStringAndReset();
-        }
-        switch (state_) {
-            case PARSE_LINE:
-                if (!parseRequestLine(line)) {
-                    return false;
-                }
-                parse_url();
-                break;
-            case PARSE_HEADERS:
-                if (line_len == 0) {
-                    // 请求头已解析完毕
-                    state_ = PARSE_BODY;
-                } else {
-                    parseRequestHeader(line);
-                    if (buf.getContentLen() <= 2) {
-                        state_ = FINISH;
-                    }
-                }
-                break;
-            case PARSE_BODY:
-                parseRequestBody(line);
-                break;
-            case FINISH:
-                break;
-        }
-    }
-    return true;
 }
-
-//bool ParseHttpRequest::parse_url(const std::string &url) {
-//    std::regex urlPattern(R"(^([^\?#]*)(?:\?([^#]*))?)");
-//    std::smatch matches;
-//
-//    if (std::regex_match(url, matches, urlPattern)) {
-//        std::string queryString = matches[2].str();
-//        std::regex queryPattern(R"(([^&=]+)=([^&=]*)(&|$))");
-//        std::sregex_iterator it(queryString.begin(), queryString.end(), queryPattern);
-//        std::sregex_iterator end;
-//        for (; it != end; ++it) {
-//            params.urlParams_[it->str(1)] = it->str(2);
-//        }
-//    } else {
-//        return false;
-//    }
-//
-//    return true;
-//}
-
-void ParseHttpRequest::parse_url() {
-    if(params.url_ == "/") {
-        params.url_ = "/index.html";
-    }
-    else {
-        for(auto &item: DEFAULT_HTML) {
-            if(item == params.url_) {
-                params.url_ += ".html";
-                break;
-            }
-        }
-    }
-}
-
-HttpMethod::MethodType &ParseHttpRequest::getMethod() {
-    return params.method_;
-}
-
-std::string &ParseHttpRequest::getVersion() {
-    return version_;
-}
-
-std::unordered_map<std::string, std::string> &ParseHttpRequest::getHeaders() {
-    return headers_;
-}
-
-std::string &ParseHttpRequest::getBody() {
-    return params.body_;
-}
-// 返回当前http请求是否keep alive
-bool ParseHttpRequest::keepAlive() {
-    if (headers_.count("Connection")) {
-        return headers_["Connection"] ==  "keep-alive" && version_ == "1.1";
-    }
-    return false;
-}
-
-HttpParams &ParseHttpRequest::getParams() {
-    return params;
-}
-

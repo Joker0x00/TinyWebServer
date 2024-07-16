@@ -40,7 +40,9 @@ private:
 
 public:
     // 提供服务器运行参数
-    Server(const char* ip, int port, int trigMod, int timeout, LogTarget target, LogLevel::value logLevel, int max_thread_cnt, int max_timer_cnt, int max_fd, int max_epoll_events);
+    Server(const char* ip, int port, int trigMod, int timeout, LogTarget target, LogLevel::value logLevel,
+           int max_thread_cnt, int max_timer_cnt, int max_fd, int max_epoll_events, int sqlPort, const char * sqlUser,
+           const char * sqlPwd, const char * dbName, int connPoolNum);
     ~Server();
     void initTrigMode();
     bool startListen();

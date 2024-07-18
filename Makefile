@@ -1,3 +1,4 @@
 all:
-	mkdir -p build
+	mkdir -p build/bin
+	mkdir -p log
 	cd build && make

@@ -9,8 +9,8 @@ OBJS = ../webserver/log/*.cpp \
 	   ../webserver/server/*.cpp \
 	   ../webserver/timer/*.cpp \
 	   ../webserver/main.cpp \
-	   ../webserver/lib/*.cpp \
-	   ../webserver/urls/*.cpp
+	   ../webserver/lib/inih-r58/cpp/*.cpp \
+	   ../webserver/lib/inih-r58/*.c \
 
 all: $(OBJS)
 	$(CXX) $(CFLAGS) $(OBJS) -o /home/wy/CLionProjects/cpp/TinyWebServer/build/bin/$(TARGET) -pthread -lmysqlclient

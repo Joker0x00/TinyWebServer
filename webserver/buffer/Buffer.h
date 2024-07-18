@@ -37,8 +37,6 @@ public:
 
     char* getWritePtr();
 
-//    char* getEndPtr();
-
     ssize_t readFd(int fd, int* Errno);
 
     ssize_t writeFd(int fd, int* Errno);

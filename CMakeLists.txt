@@ -15,7 +15,6 @@ add_executable(TinyWebServer webserver/main.cpp
         webserver/pool/ThreadPool.h
         webserver/http/ParseHttpRequest.cpp
         webserver/http/ParseHttpRequest.h
-        webserver/http/HttpMethod.h
         webserver/http/HttpResponse.h
         webserver/http/HttpParams.h
         webserver/http/HttpWork.cpp
@@ -31,7 +30,7 @@ add_executable(TinyWebServer webserver/main.cpp
         webserver/views/Base.h
         webserver/views/Login.h
         webserver/http/Response.h
-        webserver/lib/json.cpp
+        webserver/lib/json/json.cpp
         webserver/lib/json/json.h
         webserver/lib/json/json-forwards.h
         webserver/http/HttpMethod.cpp

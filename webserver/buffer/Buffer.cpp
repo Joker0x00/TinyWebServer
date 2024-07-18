@@ -36,11 +36,6 @@ char* Buffer::getBeginPtr() {
     return &buffer_[0];
 }
 
-// 获取buffer尾指针
-//char *Buffer::getEndPtr() {
-//    return &buffer_[buffer_.size() - 1];
-//}
-
 // 移动写指针
 void Buffer::addWriteIdx(size_t len) {
     writeIdx_ += len;
@@ -146,7 +141,7 @@ bool Buffer::confirmSpace(size_t len) {
 }
 
 const char *Buffer::getConstReadPtr() {
-    return &buffer_[0];
+    return &buffer_[readIdx_];
 }
 
 

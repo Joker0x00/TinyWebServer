@@ -7,16 +7,15 @@
 Server::Server(const char *ip, int port, int trigMod, int timeout, LogTarget target, LogLevel::value logLevel, int max_thread_cnt,
                int max_timer_cnt, int max_fd, int max_epoll_events, int sqlPort, const char *sqlUser,
                const char * sqlPwd, const char * dbName, int connPoolNum):ip_(ip), port_(port),
-               trigMod_(trigMod), timeoutMs_(timeout), MAXFD_(max_fd), userCnt(0),
+               trigMod_(trigMod), timeoutMs_(timeout), MAXFD_(max_fd),
                threadPool_(new ThreadPool(max_thread_cnt)), timer_(new Timer(max_timer_cnt)),
                epoll_(new Epoll(max_epoll_events)) {
     isRun_ = false;
     srcDir_ = getcwd(nullptr, 256);
     auto l = Log::getInstance();
 //     初始化日志系统
-    l->init(target, (srcDir_ + "/log").c_str(), ".txt", logLevel);
+    l->init(target, (srcDir_ + "/log").c_str(), ".log", logLevel);
     HttpWork::srcDir_ = srcDir_ + "/resources";
-    Router::resource_path = srcDir_ + "/resources";
 
     SqlConnPool::Instance()->Init("localhost", sqlPort, sqlUser, sqlPwd, dbName, connPoolNum);
 //     初始化监听事件
@@ -58,7 +57,7 @@ bool Server::startListen() {
 
     listenFd_ = socket(PF_INET, SOCK_STREAM, 0);
     if (listenFd_ < 0) {
-        LOG_FATAL("%s", "create socket failed");
+        LOG_FATAL("create socket failed");
         return false;
     }
     setNonBlocking(listenFd_);
@@ -66,14 +65,14 @@ bool Server::startListen() {
     int optVal = 1;
     res = setsockopt(listenFd_, SOL_SOCKET, SO_REUSEADDR, &optVal, sizeof(int));
     if(res == -1) {
-        LOG_FATAL("%s", "set socket setsockopt error !");
+        LOG_FATAL("set socket setsockopt error !");
         close(listenFd_);
         return false;
     }
 
     res = bind(listenFd_, (struct sockaddr*)&address, sizeof address);
     if (res == -1) {
-        LOG_FATAL("%s", "bind socket failed");
+        LOG_FATAL("bind socket failed");
         return false;
     }
 
@@ -99,11 +98,11 @@ int Server::setNonBlocking(int fd) {
 
 void Server::run() {
     if (!isRun_) {
-        LOG_ERROR("%s", "Server start failed");
+        LOG_ERROR("Server start failed");
         return;
     }
     int timeout = -1;
-    LOG_INFO("%s", "Server start running");
+    LOG_INFO("Server start running");
     while(isRun_) {
         if (timeoutMs_ > 0) {
             // 清理过期时间
@@ -122,25 +121,14 @@ void Server::run() {
                 LOG_WARN("(main): close event: fd(%d)", fd);
                 closeConn(users_[fd]); // 关闭连接
             } else if (events & EPOLLIN) {
-//                LOG_DEBUG("(main): read event: %d", fd);
                 dealRead(users_[fd]);
             } else if (events & EPOLLOUT) {
-//                LOG_DEBUG("(main): write event: %d", fd);
                 dealWrite(users_[fd]);
             } else {
-//                LOG_ERROR("(main): %s", "unexpected event");
+                LOG_ERROR("(main): unexpected event");
             }
         }
     }
-}
-
-void Server::closeConn(HttpWork &client) {
-//    if (!client.getIsRun())
-//        return;
-    LOG_INFO("(main): client %d is closing", client.getFd());
-//    epoll_->delFd(client.getFd());
-    userCnt --;
-    client.closeConn();
 }
 
 void Server::dealListen() {
@@ -150,16 +138,15 @@ void Server::dealListen() {
         int fd = accept(listenFd_, (struct sockaddr*)&address, &addr_len);
         if (fd <= 0) {
             return;
-        } else if (userCnt >= MAXFD_) {
+        } else if (HttpWork::userCount >= MAXFD_) {
             sendError(fd, "Server busy");
-            LOG_ERROR("%s", "server is full");
+            LOG_ERROR("server is full");
             return;
         }
         addClient(fd, address);
     } while(listenEvents_ & EPOLLET);
 }
 void Server::addClient(int fd, sockaddr_in &addr) {
-    userCnt ++;
     // 初始化连接
     users_[fd].init(fd, addr);
     HttpWork &client = users_[fd];
@@ -176,14 +163,14 @@ void Server::addClient(int fd, sockaddr_in &addr) {
 }
 
 void Server::dealWrite(HttpWork &client) {
-//    assert(client.getIsRun());
+    assert(client.getIsRun());
     extendTime(client.getFd());
     threadPool_->addTask([this, &client] { writeCb(client); });
 }
 
 void Server::dealRead(HttpWork &client) {
 //    LOG_INFO("(main): dealRead client: %d", client.getFd());
-//    assert(client.getIsRun());
+    assert(client.getIsRun());
     extendTime(client.getFd());
     threadPool_->addTask([this, &client] { readCb(client); });
 }
@@ -199,31 +186,26 @@ void Server::sendError(int fd, const char *msg) {
 
 
 void Server::extendTime(int fd) {
-//    assert(fd >= 0);
+    assert(fd >= 0);
     timer_->reset(fd, timeoutMs_);
 }
 
 void Server::readCb(HttpWork &client) {
-//    Log::DEBUG("client %d isRun %d", client.getFd(), client.getIsRun());
-//    assert(client.getIsRun());
+    assert(client.getIsRun());
     int Errno = 0;
 
     auto len = client.readFd(&Errno);
-//    LOG_DEBUG("(thread): client %d read %d", client.getFd(), len);
     if (len <= 0 && !(Errno == EAGAIN || Errno == 0)) {
         // 出现了其他错误，关闭连接
         LOG_ERROR("(thread):read error: %d, client %d is closing", Errno, client.getFd());
         closeConn(client);
         return;
     }
-//    LOG_INFO("(thread): read request from user %d", client.getFd());
     if (client.processHttp()) {
         // 成功处理了http读请求，response已生成，等待写出
         epoll_->modFd(client.getFd(), EPOLLOUT | httpConnEvents_);
-//        LOG_INFO("(thread): process request from user %d", client.getFd());
     } else {
         // http请求未处理，读缓冲为空，重新等待请求
-//        epoll_->modFd(client.getFd(), EPOLLIN | httpConnEvents_);
         epoll_->delFd(client.getFd());
         LOG_ERROR("(thread): readBuf is none, client: %d", client.getFd());
         closeConn(client);
@@ -231,7 +213,7 @@ void Server::readCb(HttpWork &client) {
 }
 
 void Server::writeCb(HttpWork &client) {
-//    assert(client.getIsRun()); // 连接未关闭
+    assert(client.getIsRun()); // 连接未关闭
     int Errno = 0;
     auto len = client.writeFd(&Errno);
 //    LOG_DEBUG("Error: %d", Errno);
@@ -253,9 +235,15 @@ void Server::writeCb(HttpWork &client) {
     closeConn(client);
 }
 
+void Server::closeConn(HttpWork &client) {
+    if (!client.getIsRun())
+        return;
+    LOG_INFO("(main): client %d is closing", client.getFd());
+    epoll_->delFd(client.getFd());
+    client.closeConn();
+}
+
 Server::~Server() {
     close(listenFd_);
     isRun_ = false;
 }
-
-

@@ -15,7 +15,6 @@
 #include <sys/epoll.h>
 #include <arpa/inet.h>
 #include <functional>
-#include "../urls/Router.h"
 
 
 class Server {
@@ -25,7 +24,6 @@ private:
     int trigMod_;
     int timeoutMs_;
     int MAXFD_;
-    int userCnt;
     std::unique_ptr<ThreadPool> threadPool_;
     std::unique_ptr<Timer> timer_;
     std::unique_ptr<Epoll> epoll_;
@@ -46,19 +44,17 @@ public:
     ~Server();
     void initTrigMode();
     bool startListen();
-    int setNonBlocking(int fd);
+    static int setNonBlocking(int fd);
     void dealListen();
     void addClient(int fd, sockaddr_in &addr);
     void dealWrite(HttpWork &client);
     void dealRead(HttpWork &client);
-    void sendError(int fd, const char *msg);
+    static void sendError(int fd, const char *msg);
     void closeConn(HttpWork &client);
     void extendTime(int fd);
     void readCb(HttpWork &client);
     void writeCb(HttpWork &client);
     void run();
-
-    void testRun();
 };
 
 

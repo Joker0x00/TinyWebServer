@@ -17,9 +17,9 @@
 
 // 日志输出位置
 enum LogTarget {
-    LOG_TARGET_NONE = 0x00,
-    LOG_TARGET_CONSOLE = 0x01,
-    LOG_TARGET_FILE = 0x10
+    LOG_TARGET_NONE = 0,
+    LOG_TARGET_CONSOLE = 1,
+    LOG_TARGET_FILE = 2
 };
 
 

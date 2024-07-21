@@ -24,7 +24,7 @@ void Timer::down(size_t u) {
 }
 
 void Timer::swap_(size_t t1, size_t t2) {
-    assert(t1 >= 1 && t1 < heap_.size());
+    assert(t1 >= 1 && t1 <= heap_.size());
     assert(t2 >= 1 && t2 <= heap_.size());
     std::swap(heap_[t1], heap_[t2]);
     ref_[heap_[t1].id_] = t1;
